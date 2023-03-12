@@ -1,0 +1,10 @@
+(sym_lib_table
+  (lib (name "634008138121")(type "Legacy")(uri "/Users/alexspongerman/Documents/PROJECTS/INGENERING PROJECTS/FILES/634008138121/634008138121.lib")(options "")(descr ""))
+  (lib (name "AD9361BBCZ")(type "Legacy")(uri "/Users/alexspongerman/Documents/PROJECTS/INGENERING PROJECTS/FILES/AD9361BBCZ/AD9361BBCZ.lib")(options "")(descr ""))
+  (lib (name "XC7Z007S-1CLG400C")(type "Legacy")(uri "/Users/alexspongerman/Documents/PROJECTS/INGENERING PROJECTS/FILES/XC7Z007S-1CLG400C/XC7Z007S-1CLG400C.lib")(options "")(descr ""))
+  (lib (name "TXS02612RTWR")(type "Legacy")(uri "/Users/alexspongerman/Documents/PROJECTS/INGENERING PROJECTS/FILES/TXS02612RTWR/TXS02612RTWR.lib")(options "")(descr ""))
+  (lib (name "USB4056-03-A_REVA")(type "Legacy")(uri "/Users/alexspongerman/Documents/PROJECTS/INGENERING PROJECTS/FILES/USB4056-03-A_REVA/USB4056-03-A_REVA.lib")(options "")(descr ""))
+  (lib (name "TMC429-PI24")(type "Legacy")(uri "/Users/alexspongerman/Documents/PROJECTS/INGENERING PROJECTS/FILES/TMC429-PI24 (1)/TMC429-PI24.lib")(options "")(descr ""))
+  (lib (name "1932258-1")(type "Legacy")(uri "/Users/alexspongerman/Documents/PROJECTS/INGENERING PROJECTS/FILES/1932258-1/1932258-1.lib")(options "")(descr ""))
+  (lib (name "PCF8574DW")(type "Legacy")(uri "/Users/alexspongerman/Documents/PROJECTS/INGENERING PROJECTS/FILES/PCF8574DW/PCF8574DW.lib")(options "")(descr ""))
+)

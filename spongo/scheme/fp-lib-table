@@ -1,0 +1,12 @@
+(fp_lib_table
+  (lib (name "RJ45-8N-B")(type "KiCad")(uri "/Users/alexspongerman/Documents/PROJECTS/INGENERING PROJECTS/FILES/RJ45-8N-B")(options "")(descr ""))
+  (lib (name "AD9361BBCZ")(type "KiCad")(uri "/Users/alexspongerman/Documents/PROJECTS/INGENERING PROJECTS/FILES/AD9361BBCZ")(options "")(descr ""))
+  (lib (name "XC7Z007S-1CLG400C")(type "KiCad")(uri "/Users/alexspongerman/Documents/PROJECTS/INGENERING PROJECTS/FILES/XC7Z007S-1CLG400C")(options "")(descr ""))
+  (lib (name "TLV62130RGTT")(type "KiCad")(uri "/Users/alexspongerman/Documents/PROJECTS/INGENERING PROJECTS/FILES/TLV62130RGTT")(options "")(descr ""))
+  (lib (name "TXS02612RTWR")(type "KiCad")(uri "/Users/alexspongerman/Documents/PROJECTS/INGENERING PROJECTS/FILES/TXS02612RTWR")(options "")(descr ""))
+  (lib (name "TPS7A8101DRBR")(type "KiCad")(uri "/Users/alexspongerman/Documents/PROJECTS/INGENERING PROJECTS/FILES/TPS7A8101DRBR")(options "")(descr ""))
+  (lib (name "USB4056-03-A_REVA")(type "KiCad")(uri "/Users/alexspongerman/Documents/PROJECTS/INGENERING PROJECTS/FILES/USB4056-03-A_REVA")(options "")(descr ""))
+  (lib (name "TMC429-PI24 (1)")(type "KiCad")(uri "/Users/alexspongerman/Documents/PROJECTS/INGENERING PROJECTS/FILES/TMC429-PI24 (1)")(options "")(descr ""))
+  (lib (name "1932258-1")(type "KiCad")(uri "/Users/alexspongerman/Documents/PROJECTS/INGENERING PROJECTS/FILES/1932258-1")(options "")(descr ""))
+  (lib (name "HLK-10M05")(type "KiCad")(uri "/Users/alexspongerman/Documents/PROJECTS/INGENERING PROJECTS/FILES/HLK-10M05")(options "")(descr ""))
+)
