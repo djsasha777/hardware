@@ -17,7 +17,7 @@ while true; do
         git clone $REPO_URL
         cd hardware/OPENWRT/nginx
         cp nginx.conf $LOCAL_FILE.tmp
-        cd && rm -rf autoconf
+        cd .. && rm -rf autoconf
         
         if [[ -f "$LOCAL_FILE.tmp" ]]; then
             mv "$LOCAL_FILE.tmp" "$LOCAL_FILE"
