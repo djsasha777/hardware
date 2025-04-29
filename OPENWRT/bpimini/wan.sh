@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # add rule for wan gui
 
