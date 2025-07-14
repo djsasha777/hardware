@@ -2,32 +2,25 @@
 <head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
 <style>html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}</style></head>
 <h1 style="color: #5e9ca0;">WELCOME HOME!</h1>
-<h2 style="color: #2e6c80;"><a href="http://192.168.111.238/on">SERVER ON</a></h2>
-<h2 style="color: #2e6c80;"><a href="http://192.168.111.238/long">SERVER LONG</a></h2>
-<h2 style="color: #2e6c80;"><a href="http://192.168.111.108/on">SPONGO1 ON</a></h2>
-<h2 style="color: #2e6c80;"><a href="http://192.168.111.108/off">SPONGO1 OFF</a></h2>
-<h2 style="color: #2e6c80;"><a href="http://192.168.111.108/1on">SPONGO2 ON</a></h2>
-<h2 style="color: #2e6c80;"><a href="http://192.168.111.108/1off">SPONGO2 OFF</a></h2>
-<h2 style="color: #2e6c80;"><a href="http://192.168.111.108/2on">SPONGO3 ON</a></h2>
-<h2 style="color: #2e6c80;"><a href="http://192.168.111.108/2off">SPONGO3 OFF</a></h2>
 
 <!-- Кнопка -->
-<button id="sendRequestBtn">SERVER ON</button>
+<button id="requestButton">Отправить запрос</button>
 
-<div id="responseArea"></div>
+<div id="responseDiv"></div>
 
 <script>
-document.getElementById("sendRequestBtn").addEventListener("click", async () => {
+document.getElementById("requestButton").addEventListener("click", async () => {
     try {
         const response = await fetch("http://192.168.111.238/on");
         
-        if (!response.ok) throw new Error(`ERROR HTTP ${response.status}`);
+        if (!response.ok) throw new Error(`Ошибка HTTP ${response.status}`);
     
-        const data = await response.text();
-        document.getElementById("responseArea").innerText = `RESEVE: ${data}`;
+        const result = await response.text(); // Получаем ответ от сервера
+
+        document.getElementById("responseDiv").innerText = `Сервер ответил: ${result}`; // Показываем ответ пользователю
     } catch(error) {
-        console.error('ERROR:', error);
-        document.getElementById("responseArea").innerText = `ERROR: ${error.message}`;
+        console.error('Ошибка:', error); // Логируем ошибку в консоль
+        document.getElementById("responseDiv").innerText = `Ошибка: ${error.message}`; // Сообщаем пользователю об ошибке
     }
 });
 </script>
