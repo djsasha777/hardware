@@ -10,6 +10,19 @@
 <h2 style="color: #2e6c80;"><a href="http://192.168.111.108/1off">SPONGO2 OFF</a></h2>
 <h2 style="color: #2e6c80;"><a href="http://192.168.111.108/2on">SPONGO3 ON</a></h2>
 <h2 style="color: #2e6c80;"><a href="http://192.168.111.108/2off">SPONGO3 OFF</a></h2>
+<!-- Кнопка -->
+<button id="myButton">Нажми меня!</button>
+
+<p id="result"></p>
+
+<script>
+// Функция обработки клика кнопки
+document.getElementById('myButton').addEventListener('click', function() {
+    // Локальное действие при нажатии кнопки
+    document.getElementById('result').innerHTML = 'Привет! Вы нажали кнопку.';
+});
+</script>
+
 <ol style="list-style: none; font-size: 14px; line-height: 32px; font-weight: bold;">
 <li style="clear: both;">&nbsp;</li>
 </ol>
