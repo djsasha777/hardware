@@ -11,7 +11,7 @@
 <script>
 document.getElementById("requestButton").addEventListener("click", async () => {
     try {
-        const response = await fetch("http://localhost:8886/on");
+        const response = await fetch("https://switch.spongo.ru/on");
         
         if (!response.ok) throw new Error(`error HTTP ${response.status}`);
     
