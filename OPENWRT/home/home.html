@@ -4,7 +4,7 @@
 <h1 style="color: #5e9ca0;">WELCOME HOME!</h1>
 
 <!-- Кнопка -->
-<button id="requestButton">Отправить запрос</button>
+<button id="requestButton">SERVER ON</button>
 
 <div id="responseDiv"></div>
 
@@ -13,14 +13,14 @@ document.getElementById("requestButton").addEventListener("click", async () => {
     try {
         const response = await fetch("http://192.168.111.238/on");
         
-        if (!response.ok) throw new Error(`Ошибка HTTP ${response.status}`);
+        if (!response.ok) throw new Error(`error HTTP ${response.status}`);
     
         const result = await response.text(); // Получаем ответ от сервера
 
         document.getElementById("responseDiv").innerText = `Сервер ответил: ${result}`; // Показываем ответ пользователю
     } catch(error) {
-        console.error('Ошибка:', error); // Логируем ошибку в консоль
-        document.getElementById("responseDiv").innerText = `Ошибка: ${error.message}`; // Сообщаем пользователю об ошибке
+        console.error('error:', error); // Логируем ошибку в консоль
+        document.getElementById("responseDiv").innerText = `error: ${error.message}`; // Сообщаем пользователю об ошибке
     }
 });
 </script>
