@@ -21,13 +21,13 @@ document.getElementById("sendRequestBtn").addEventListener("click", async () => 
     try {
         const response = await fetch("http://192.168.111.238/on");
         
-        if (!response.ok) throw new Error(`Ошибка HTTP ${response.status}`);
+        if (!response.ok) throw new Error(`ERROR HTTP ${response.status}`);
     
         const data = await response.text();
-        document.getElementById("responseArea").innerText = `Получено: ${data}`;
+        document.getElementById("responseArea").innerText = `RESEVE: ${data}`;
     } catch(error) {
-        console.error('Ошибка:', error);
-        document.getElementById("responseArea").innerText = `Ошибка: ${error.message}`;
+        console.error('ERROR:', error);
+        document.getElementById("responseArea").innerText = `ERROR: ${error.message}`;
     }
 });
 </script>
