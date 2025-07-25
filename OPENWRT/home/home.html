@@ -11,7 +11,7 @@
 <script>
 document.getElementById("requestButton").addEventListener("click", async () => {
     try {
-        const response = await fetch("localhost:8100/on");
+        const response = await fetch("http://127.0.0.1:8100/on");
         
         if (!response.ok) throw new Error(`error HTTP ${response.status}`);
     
