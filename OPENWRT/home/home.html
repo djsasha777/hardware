@@ -11,19 +11,21 @@
 <script>
 document.getElementById("requestButton").addEventListener("click", async () => {
     try {
-        const xhr = new XMLHttpRequest();
-        xhr.open('GET', 'http://localhost:8100/on'); // Replace 3000 with your backend port
-        xhr.onload = function() {
-        if (xhr.status === 200) {
-            console.log('Data from backend:', JSON.parse(xhr.responseText));
-        } else {
-            console.error('Error fetching data:', xhr.statusText);
-        }
-        };
-        xhr.onerror = function() {
-        console.error('Network error occurred.');
-        };
-        xhr.send();
+        const express = require('express');
+        const { createProxyMiddleware } = require('http-proxy-middleware');
+
+        const app = express();
+        const backendTarget = 'http://localhost:8100/on'; // Replace with your backend API URL
+
+        app.use(
+        '/api', // Requests to /api will be proxied
+        createProxyMiddleware({
+            target: backendTarget,
+            changeOrigin: true, // Needed for virtual hosted sites
+            // Optional: pathRewrite to modify the URL path before forwarding
+            // pathRewrite: { '^/api': '' },
+        })
+        );
     } catch(error) {
         console.error('error:', error); // Логируем ошибку в консоль
         document.getElementById("responseDiv").innerText = `error: ${error.message}`; // Сообщаем пользователю об ошибке
