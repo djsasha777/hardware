@@ -11,16 +11,13 @@
 <script>
 document.getElementById("requestButton").addEventListener("click", async () => {
     try {
-        module.exports = {
-        async rewrites() {
-            return [
-            {
-                source: '/',
-                destination: 'http://localhost:8100/on' // Proxy to Backend
-            }
-            ]
-        }
-        }
+        const response = await fetch("http://localhost:8100/on");
+        
+        if (!response.ok) throw new Error(`Ошибка HTTP ${response.status}`);
+    
+        const data = await response.text();
+        document.getElementById("responseArea").innerText = `Получено: ${data}`;
+
     } catch(error) {
         console.error('error:', error); // Логируем ошибку в консоль
         document.getElementById("responseDiv").innerText = `error: ${error.message}`; // Сообщаем пользователю об ошибке
