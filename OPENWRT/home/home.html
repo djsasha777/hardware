@@ -11,21 +11,16 @@
 <script>
 document.getElementById("requestButton").addEventListener("click", async () => {
     try {
-        const express = require('express');
-        const { createProxyMiddleware } = require('http-proxy-middleware');
-
-        const app = express();
-        const backendTarget = 'http://localhost:8100/on'; // Replace with your backend API URL
-
-        app.use(
-        '/api', // Requests to /api will be proxied
-        createProxyMiddleware({
-            target: backendTarget,
-            changeOrigin: true, // Needed for virtual hosted sites
-            // Optional: pathRewrite to modify the URL path before forwarding
-            // pathRewrite: { '^/api': '' },
-        })
-        );
+        module.exports = {
+        async rewrites() {
+            return [
+            {
+                source: '/',
+                destination: 'http://localhost:8100/on' // Proxy to Backend
+            }
+            ]
+        }
+        }
     } catch(error) {
         console.error('error:', error); // Логируем ошибку в консоль
         document.getElementById("responseDiv").innerText = `error: ${error.message}`; // Сообщаем пользователю об ошибке
