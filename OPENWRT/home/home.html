@@ -10,26 +10,20 @@
 
 <script>
 document.getElementById("requestButton").addEventListener("click", async () => {
-    try {
-        fetch('http://localhost:8100/on') // Replace with your backend endpoint
-        .then(response => {
-            if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.json(); // Or .text() if expecting plain text
-        })
-        .then(data => {
-            console.log('Data from local backend:', data);
-            // Process the data here
-        })
-        .catch(error => {
-            console.error('Error fetching data:', error);
-        });
-
-    } catch(error) {
-        console.error('error:', error); // Логируем ошибку в консоль
-        document.getElementById("responseDiv").innerText = `error: ${error.message}`; // Сообщаем пользователю об ошибке
-    }
+    fetch('http://localhost:8100/on') // Replace with your backend endpoint
+    .then(response => {
+        if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json(); // Or .text() if expecting plain text
+    })
+    .then(data => {
+        console.log('Data from local backend:', data);
+        // Process the data here
+    })
+    .catch(error => {
+        console.error('Error fetching data:', error);
+    });
 });
 </script>
 
