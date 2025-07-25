@@ -11,19 +11,19 @@
 <script>
 document.getElementById("requestButton").addEventListener("click", async () => {
     try {
-        fetch('http://localhost:8100/')
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json(); // Or .text(), .blob(), etc.
-            })
-            .then(data => {
-                console.log('Data from backend:', data);
-            })
-            .catch(error => {
-                console.error('Error fetching data:', error);
-            });
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', 'http://localhost:8100/on'); // Replace 3000 with your backend port
+        xhr.onload = function() {
+        if (xhr.status === 200) {
+            console.log('Data from backend:', JSON.parse(xhr.responseText));
+        } else {
+            console.error('Error fetching data:', xhr.statusText);
+        }
+        };
+        xhr.onerror = function() {
+        console.error('Network error occurred.');
+        };
+        xhr.send();
     } catch(error) {
         console.error('error:', error); // Логируем ошибку в консоль
         document.getElementById("responseDiv").innerText = `error: ${error.message}`; // Сообщаем пользователю об ошибке
