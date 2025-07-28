@@ -6,25 +6,6 @@
 <!-- Кнопка -->
 <button id="requestButton">SERVER ON</button>
 
-<div id="responseDiv"></div>
-
-<script>
-document.getElementById("sendRequestBtn").addEventListener("click", async () => {
-    try {
-        const response = await fetch("http://127.0.0.1:8100/on");
-        
-        if (!response.ok) throw new Error(`Ошибка HTTP ${response.status}`);
-    
-        const data = await response.text();
-        document.getElementById("responseArea").innerText = `Получено: ${data}`;
-    } catch(error) {
-        console.error('Ошибка:', error);
-        document.getElementById("responseArea").innerText = `Ошибка: ${error.message}`;
-    }
-});
-
-</script>
-
 
 <ol style="list-style: none; font-size: 14px; line-height: 32px; font-weight: bold;">
 <li style="clear: both;">&nbsp;</li>
