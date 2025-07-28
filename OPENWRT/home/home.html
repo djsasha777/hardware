@@ -9,22 +9,20 @@
 <div id="responseDiv"></div>
 
 <script>
-document.getElementById("requestButton").addEventListener("click", async () => {
-    fetch('http://localhost:8100/on') // Replace with your backend endpoint
-    .then(response => {
-        if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json(); // Or .text() if expecting plain text
-    })
-    .then(data => {
-        console.log('Data from local backend:', data);
-        // Process the data here
-    })
-    .catch(error => {
-        console.error('Error fetching data:', error);
-    });
+document.getElementById("sendRequestBtn").addEventListener("click", async () => {
+    try {
+        const response = await fetch("http://127.0.0.1:8100/on");
+        
+        if (!response.ok) throw new Error(`Ошибка HTTP ${response.status}`);
+    
+        const data = await response.text();
+        document.getElementById("responseArea").innerText = `Получено: ${data}`;
+    } catch(error) {
+        console.error('Ошибка:', error);
+        document.getElementById("responseArea").innerText = `Ошибка: ${error.message}`;
+    }
 });
+
 </script>
 
 
