@@ -5,27 +5,40 @@
 
 
 <!-- Кнопка -->
-<button id="requestButton">SERVER ON</button>
+<button id="serverON">SERVER ON</button>
 
 <div id="responseDiv"></div>
 
 <script>
-document.getElementById("requestButton").addEventListener("click", async () => {
+document.getElementById("serverON").addEventListener("click", async () => {
     try {
         const response = await fetch("https://home.spongo.ru/on");
-        
         if (!response.ok) throw new Error(`err HTTP ${response.status}`);
-    
-        const result = await response.text(); // Получаем ответ от сервера
-
-        document.getElementById("responseDiv").innerText = `server resp: ${result}`; // Показываем ответ пользователю
+        const result = await response.text();
+        document.getElementById("responseDiv").innerText = `SERVER ON`;
     } catch(error) {
-        console.error('err:', error); // Логируем ошибку в консоль
-        document.getElementById("responseDiv").innerText = `err: ${error.message}`; // Сообщаем пользователю об ошибке
+        console.error('err:', error);
+        document.getElementById("responseDiv").innerText = `err: ${error.message}`;
     }
 });
 </script>
 
+<button id="serverLONG">SERVER LONG</button>
+<div id="responseDiv2"></div>
+
+<script>
+document.getElementById("serverLONG").addEventListener("click", async () => {
+    try {
+        const response = await fetch("https://home.spongo.ru/long");
+        if (!response.ok) throw new Error(`err HTTP ${response.status}`);
+        const result = await response.text();
+        document.getElementById("responseDiv2").innerText = `SERVER LONG`;
+    } catch(error) {
+        console.error('err:', error);
+        document.getElementById("responseDiv2").innerText = `err: ${error.message}`;
+    }
+});
+</script>
 
 <ol style="list-style: none; font-size: 14px; line-height: 32px; font-weight: bold;">
 <li style="clear: both;">&nbsp;</li>
