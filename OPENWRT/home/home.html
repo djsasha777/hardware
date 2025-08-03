@@ -9,11 +9,10 @@
 <div id="responseDiv"></div>
 
 <script>
-document.getElementById("requestButton").addEventListener("click", async () => {
-    async function sendAuthenticatedRequest() {
         let username = document.getElementById("usernameInput").value;
         let password = document.getElementById("passwordInput").value;
-        
+document.getElementById("requestButton").addEventListener("click", async () => {
+
         try {
             await fetch('https://switch.spongo.ru/on', {
                 method: 'GET',
@@ -26,7 +25,6 @@ document.getElementById("requestButton").addEventListener("click", async () => {
         } catch(err) {
             alert('Ошибка при отправке запроса.');
         }
-    }
 });
 </script>
 
