@@ -4,31 +4,26 @@
 <h1 style="color: #5e9ca0;">WELCOME HOME!</h1>
 
 
-<input id="usernameInput" type="text" placeholder="Username"/>
-<input id="passwordInput" type="password" placeholder="Password"/>
-<button onClick="sendAuthenticatedRequest()">Send Authenticated Request</button>
+<!-- Кнопка -->
+<button id="requestButton">SERVER ON</button>
 
+<div id="responseDiv"></div>
 
 <script>
-
-async function sendAuthenticatedRequest() {
-    let username = document.getElementById("usernameInput").value;
-    let password = document.getElementById("passwordInput").value;
-    
+document.getElementById("requestButton").addEventListener("click", async () => {
     try {
-        await fetch('https://switch.spongo.ru/on', {
-            method: 'GET',
-            headers: {
-                'Authorization': 'Basic ' + btoa(`${username}:${password}`)
-            },
-        });
+        const response = await fetch("http://127.0.0.1:8100/on");
         
-        alert('Запрос успешно отправлен!');
-    } catch(err) {
-        alert('Ошибка при отправке запроса.');
-    }
-}
+        if (!response.ok) throw new Error(`err HTTP ${response.status}`);
+    
+        const result = await response.text(); // Получаем ответ от сервера
 
+        document.getElementById("responseDiv").innerText = `server resp: ${result}`; // Показываем ответ пользователю
+    } catch(error) {
+        console.error('err:', error); // Логируем ошибку в консоль
+        document.getElementById("responseDiv").innerText = `err: ${error.message}`; // Сообщаем пользователю об ошибке
+    }
+});
 </script>
 
 
