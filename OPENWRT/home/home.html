@@ -56,34 +56,59 @@
         </li>
         <li>
             <button id="serverLONG">SERVER LONG</button>
-            <div id="responseDiv2"></div>
+            <div id="responseDiv"></div>
+        </li>
+        <li>
+            <button id="server1_ON">SERVER1 ON</button>
+            <div id="responseDiv"></div>
+        </li>
+        <li>
+            <button id="server1_OFF">SERVER1 OFF</button>
+            <div id="responseDiv"></div>
+        </li>
+        <li>
+            <button id="server2_ON">SERVER2 ON</button>
+            <div id="responseDiv"></div>
+        </li>
+        <li>
+            <button id="server2_OFF">SERVER2 OFF</button>
+            <div id="responseDiv"></div>
+        </li>
+        <li>
+            <button id="server3_ON">SERVER2 ON</button>
+            <div id="responseDiv"></div>
+        </li>
+        <li>
+            <button id="server3_OFF">SERVER2 OFF</button>
+            <div id="responseDiv"></div>
         </li>
     </ul>
 
     <script>
-        document.getElementById("serverON").addEventListener("click", async () => {
-            try {
-                const response = await fetch("https://home.spongo.ru/on");
-                if (!response.ok) throw new Error(`Ошибка HTTP ${response.status}`);
-                const result = await response.text();
-                document.getElementById("responseDiv").innerText = 'SERVER ON';
-            } catch(error) {
-                console.error('Ошибка:', error);
-                document.getElementById("responseDiv").innerText = `Ошибка: ${error.message}`;
-            }
-        });
+        function makeButtonHandler(buttonID, endpoint, responseDivID, successMessage) {
+            return async () => {
+                try {
+                    const response = await fetch(endpoint);
+                    if (!response.ok) throw new Error(`Ошибка HTTP ${response.status}`);
+                    const result = await response.text();
+                    document.getElementById(responseDivID).innerText = successMessage;
+                } catch(error) {
+                    console.error('Ошибка:', error);
+                    document.getElementById(responseDivID).innerText = `Ошибка: ${error.message}`;
+                }
+            };
+        }
 
-        document.getElementById("serverLONG").addEventListener("click", async () => {
-            try {
-                const response = await fetch("https://home.spongo.ru/long");
-                if (!response.ok) throw new Error(`Ошибка HTTP ${response.status}`);
-                const result = await response.text();
-                document.getElementById("responseDiv2").innerText = 'SERVER LONG';
-            } catch(error) {
-                console.error('Ошибка:', error);
-                document.getElementById("responseDiv2").innerText = `Ошибка: ${error.message}`;
-            }
-        });
-    </script>
+        // Устанавливаем обработчики событий для каждой кнопки
+        document.getElementById("serverON").addEventListener("click", makeButtonHandler("serverON", "https://home.spongo.ru/on", "responseDiv", "SERVER ON"));
+        document.getElementById("serverLONG").addEventListener("click", makeButtonHandler("serverLONG", "https://home.spongo.ru/long", "responseDiv", "SERVER LONG"));
+        document.getElementById("server1_ON").addEventListener("click", makeButtonHandler("server1_ON", "https://home.spongo.ru/1on", "responseDiv", "SERVER1 ON"));
+        document.getElementById("server1_OFF").addEventListener("click", makeButtonHandler("server1_OFF", "https://home.spongo.ru/1off", "responseDiv", "SERVER1 OFF"));
+        document.getElementById("server2_ON").addEventListener("click", makeButtonHandler("server2_ON", "https://home.spongo.ru/2on", "responseDiv", "SERVER2 ON"));
+        document.getElementById("server2_OFF").addEventListener("click", makeButtonHandler("server2_OFF", "https://home.spongo.ru/2off", "responseDiv", "SERVER2 OFF"));
+        document.getElementById("server3_ON").addEventListener("click", makeButtonHandler("server3_ON", "https://home.spongo.ru/3on", "responseDiv", "SERVER3 ON"));
+        document.getElementById("server3_OFF").addEventListener("click", makeButtonHandler("server3_OFF", "https://home.spongo.ru/3off", "responseDiv", "SERVER3 OFF"));
+</script>
+
 </body>
 </html>
