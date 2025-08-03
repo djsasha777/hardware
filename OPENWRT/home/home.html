@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SPONGO HOME</title>
     <style>
         * {
             box-sizing: border-box;
@@ -47,9 +48,7 @@
     </style>
 </head>
 <body>
-    <h1 style="color: #5e9ca0;">HOME</h1>
 
-    <!-- Оборачиваем кнопки в список -->
     <ul style="list-style-type: none; padding: 0;">
         <li>
             <button id="serverON">SERVER ON</button>
@@ -62,7 +61,6 @@
     </ul>
 
     <script>
-        // Скрипты остались прежними
         document.getElementById("serverON").addEventListener("click", async () => {
             try {
                 const response = await fetch("https://home.spongo.ru/on");
