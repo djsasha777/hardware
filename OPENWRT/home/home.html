@@ -5,8 +5,11 @@
 
 <!-- Кнопка -->
 <button id="requestButton">SERVER ON</button>
-<script>
 
+<div id="responseDiv"></div>
+
+<script>
+document.getElementById("requestButton").addEventListener("click", async () => {
     async function sendAuthenticatedRequest() {
         let username = document.getElementById("usernameInput").value;
         let password = document.getElementById("passwordInput").value;
@@ -24,8 +27,9 @@
             alert('Ошибка при отправке запроса.');
         }
     }
-
+});
 </script>
+
 
 <ol style="list-style: none; font-size: 14px; line-height: 32px; font-weight: bold;">
 <li style="clear: both;">&nbsp;</li>
