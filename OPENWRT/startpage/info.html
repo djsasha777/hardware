@@ -1,19 +1,78 @@
-<!-- #######  SPONGO! #########-->
-<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
-<style>html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}</style></head>
-<h1 style="color: #5e9ca0;">WELCOME TO SPONGO!</h1>
-<h2 style="color: #2e6c80;"><a href="https://player.spongo.ru">PLAYER</a></h2>
-<h2 style="color: #2e6c80;"><a href="https://webdaw.spongo.ru">WEBDAV</a></h2>
-<h2 style="color: #2e6c80;"><a href="https://gitea.spongo.ru/">GIT</a></h2>
-<h2 style="color: #2e6c80;"><a href="https://vault.spongo.ru/">VAULT</a></h2>
-<h2 style="color: #2e6c80;"><a href="https://argo.spongo.ru">ARGO</a></h2>
-<h2 style="color: #2e6c80;"><a href="https://switch.spongo.ru">SWITCH</a></h2>
-<h2 style="color: #2e6c80;"><a href="https://nexus.spongo.ru">NEXUS</a></h2>
-<h2 style="color: #2e6c80;"><a href="https://switch2.spongo.ru">SWITCH2</a></h2>
-<h2 style="color: #2e6c80;"><a href="https://home.spongo.ru">HOME</a></h2>
-<ol style="list-style: none; font-size: 14px; line-height: 32px; font-weight: bold;">
-<li style="clear: both;">&nbsp;</li>
-</ol>
-<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;</p>
-<p>&nbsp;</p>
-<p><strong>&nbsp;</strong></p>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SPONGO!</title>
+    <style>
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            background-color: #fafafa;
+            color: #2e6c80;
+            text-align: center;
+            padding-top: 5%;
+        }
+        
+        h1 {
+            color: #5e9ca0;
+            font-size: 3em;
+            letter-spacing: 2px;
+        }
+        
+        a {
+            text-decoration: none;
+            color: inherit;
+            transition: all .3s ease-in-out;
+        }
+        
+        ul {
+            list-style-type: none;
+            padding-left: 0;
+            width: 100%; /* Адаптация ширины */
+        }
+        
+        li {
+            display: block;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            border-radius: 4px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,.1);
+            transition: transform .3s ease-in-out;
+        }
+        
+        li a {
+            display: block;
+            padding: 15px 20px;
+            font-size: 1.7em;
+            width: 100%; /* Ширина ссылок равна ширине блока */
+            height: 100%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        li:hover,
+        li:focus-within {
+            transform: scale(1.05); /* Небольшое увеличение размера при наведении */
+            background-color: #dfebfb;
+        }
+    </style>
+</head>
+<body>
+    <h1>WELCOME TO SPONGO!</h1>
+    
+    <!-- Меняем ol на ul -->
+    <ul>
+        <li><a href="https://player.spongo.ru">PLAYER</a></li>
+        <li><a href="https://webdaw.spongo.ru">WEBDAV</a></li>
+        <li><a href="https://gitea.spongo.ru/">GIT</a></li>
+        <li><a href="https://vault.spongo.ru/">VAULT</a></li>
+        <li><a href="https://argo.spongo.ru">ARGO</a></li>
+        <li><a href="https://switch.spongo.ru">SWITCH</a></li>
+        <li><a href="https://nexus.spongo.ru">NEXUS</a></li>
+        <li><a href="https://switch2.spongo.ru">SWITCH2</a></li>
+        <li><a href="https://home.spongo.ru">HOME</a></li>
+    </ul>
+</body>
+</html>
