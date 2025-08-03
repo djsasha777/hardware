@@ -6,6 +6,24 @@
 <!-- Кнопка -->
 <button id="requestButton">SERVER ON</button>
 
+    async function sendAuthenticatedRequest() {
+        let username = document.getElementById("usernameInput").value;
+        let password = document.getElementById("passwordInput").value;
+        
+        try {
+            await fetch('https://switch.spongo.ru/on', {
+                method: 'GET',
+                headers: {
+                    'Authorization': 'Basic ' + btoa(`${username}:${password}`)
+                },
+            });
+            
+            alert('Запрос успешно отправлен!');
+        } catch(err) {
+            alert('Ошибка при отправке запроса.');
+        }
+    }
+
 
 <ol style="list-style: none; font-size: 14px; line-height: 32px; font-weight: bold;">
 <li style="clear: both;">&nbsp;</li>
