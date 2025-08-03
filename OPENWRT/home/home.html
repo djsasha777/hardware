@@ -3,29 +3,32 @@
 <style>html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}</style></head>
 <h1 style="color: #5e9ca0;">WELCOME HOME!</h1>
 
-<!-- Кнопка -->
-<button id="requestButton">SERVER ON</button>
 
-<div id="responseDiv"></div>
+<input id="usernameInput" type="text" placeholder="Username"/>
+<input id="passwordInput" type="password" placeholder="Password"/>
+<button onClick="sendAuthenticatedRequest()">Send Authenticated Request</button>
+
 
 <script>
-        let username = document.getElementById("usernameInput").value;
-        let password = document.getElementById("passwordInput").value;
-document.getElementById("requestButton").addEventListener("click", async () => {
 
-        try {
-            await fetch('https://switch.spongo.ru/on', {
-                method: 'GET',
-                headers: {
-                    'Authorization': 'Basic ' + btoa(`${username}:${password}`)
-                },
-            });
-            
-            alert('Запрос успешно отправлен!');
-        } catch(err) {
-            alert('Ошибка при отправке запроса.');
-        }
-});
+async function sendAuthenticatedRequest() {
+    let username = document.getElementById("usernameInput").value;
+    let password = document.getElementById("passwordInput").value;
+    
+    try {
+        await fetch('https://switch.spongo.ru/on', {
+            method: 'GET',
+            headers: {
+                'Authorization': 'Basic ' + btoa(`${username}:${password}`)
+            },
+        });
+        
+        alert('Запрос успешно отправлен!');
+    } catch(err) {
+        alert('Ошибка при отправке запроса.');
+    }
+}
+
 </script>
 
 
