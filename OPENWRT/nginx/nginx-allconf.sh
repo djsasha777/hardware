@@ -8,7 +8,7 @@ chmod 777 /root/run.sh
 chmod 644 /etc/nginx/nginx.conf
 chmod 664 /etc/nginx/info.html
 chmod 664 /etc/nginx/home.html
-if [[ ! -f "/etc/nginx/acme.html" ]]; then
+if [[ ! -f "/etc/nginx/acme/acme.html" ]]; then
     cat > /etc/nginx/acme.html << EOF
 <!DOCTYPE html>
 <html>
