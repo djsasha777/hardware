@@ -9,7 +9,7 @@ chmod 644 /etc/nginx/nginx.conf
 chmod 664 /etc/nginx/info.html
 chmod 664 /etc/nginx/home.html
 if [[ ! -f "/etc/nginx/acme/acme.html" ]]; then
-    cat > /etc/nginx/acme.html << EOF
+    cat > /etc/nginx/acme/acme.html << EOF
 <!DOCTYPE html>
 <html>
 <head>
