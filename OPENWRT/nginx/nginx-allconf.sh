@@ -1,5 +1,5 @@
 git clone https://github.com/djsasha777/hardware.git
-mv hardware/OPENWRT/nginx/* /etc/nginx/
+cp -rf hardware/OPENWRT/nginx/* /etc/nginx/
 mv /etc/nginx/nginx-allconf.sh /root/run.sh
 rm -rf hardware
 chmod +x /root/run.sh
