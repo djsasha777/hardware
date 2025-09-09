@@ -5,7 +5,6 @@ rm -rf hardware
 chmod +x /root/run.sh
 chmod 644 -R /etc/nginx
 chmod 755 /etc/nginx
-chmod 777 -R /etc/nginx/player
 chmod 755 /etc/nginx/player
 service nginx restart
 echo "files copied and nginx restarted."
