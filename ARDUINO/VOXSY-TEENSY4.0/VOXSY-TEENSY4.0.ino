@@ -282,43 +282,36 @@ void handlePotUpdate(int index, int value) {
 }
 
 void myMotorControl(int index, int value) {
-  int targetPosition = map(value, 0, 127, 0, 315);
-  int currentPosition = analogRead(potPins[index]) * 315 / 1023;
+  // Превращаем MIDI CC 0-127 в скорось PWM 0-255
+  int speed = map(value, 0, 127, 0, 255);
 
-  Serial.print("myMotorControl index: ");
-  Serial.print(index);
-  Serial.print(", MIDI CC value: ");
-  Serial.print(value);
-  Serial.print(", Target Position: ");
-  Serial.print(targetPosition);
-  Serial.print(", Current Position: ");
-  Serial.println(currentPosition);
+  // Считаем смещение для направления из положения потенциометра
+  int currentPosition = analogRead(potPins[index]);
+  int midPoint = 512; // примерно середина диапазона
 
-  int error = targetPosition - currentPosition;
-  const int deadzone = 2;
-
-  if (abs(error) <= deadzone) {
-    Serial.println("Motor stopped due deadzone");
-    stopMotor(index);
+  if (abs(currentPosition - midPoint) < 20) {
+    // Стоп мотор
+    digitalWrite(motorPins[index][0], LOW);
+    digitalWrite(motorPins[index][1], LOW);
+    Serial.print("Motor stopped index: ");
+    Serial.println(index);
     return;
   }
 
-  if (error > 0) {
-    digitalWrite(motorPins[index][0], HIGH);
-    motorDirections[index] = true;
+  // Определяем направление
+  if (currentPosition > midPoint) {
+    // Вперёд
+    analogWrite(motorPins[index][0], speed);
+    digitalWrite(motorPins[index][1], LOW);
+    Serial.print("Motor forward index: ");
+    Serial.println(index);
   } else {
+    // Назад
+    analogWrite(motorPins[index][1], speed);
     digitalWrite(motorPins[index][0], LOW);
-    motorDirections[index] = false;
+    Serial.print("Motor backward index: ");
+    Serial.println(index);
   }
-
-  int stepFreq = map(abs(error), 0, 315, 100, MAX_STEP_FREQ);
-  stepInterval[index] = 1000000 / stepFreq;
-
-  Serial.print("Step frequency: ");
-  Serial.print(stepFreq);
-  Serial.print(" Hz, step interval: ");
-  Serial.print(stepInterval[index]);
-  Serial.println(" us");
 }
 
 void stopMotor(int index) {
