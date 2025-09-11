@@ -3,8 +3,6 @@
 #include <Wire.h>
 #include <SPI.h>
 
-// Audio Shield pins comments omitted for brevity
-
 // pots
 #define NUM_POTS 9
 #define POT_RANGE 1023
@@ -122,12 +120,18 @@ void myNoteOn(byte channel, byte note, byte velocity) {
   if (note > 23 && note < 108) {
     globalNote = note;
     globalVelocity = velocity;
+    Serial.print("Note On: ");
+    Serial.print(note);
+    Serial.print(", Velocity: ");
+    Serial.println(velocity);
     keyBuff(note, true);
   }
 }
 
 void myNoteOff(byte channel, byte note, byte velocity) {
   if (note > 23 && note < 108) {
+    Serial.print("Note Off: ");
+    Serial.println(note);
     keyBuff(note, false);
   }
 }
@@ -135,6 +139,8 @@ void myNoteOff(byte channel, byte note, byte velocity) {
 void myPitchBend(byte channel, int bend) {
   float bendF = (float)bend / 8192.0 * bendRange / 12.0;
   bendFactor = pow(2.0, bendF);
+  Serial.print("Pitch Bend: ");
+  Serial.println(bend);
   oscSet();
 }
 
@@ -143,14 +149,12 @@ void keyBuff(byte note, bool playNote) {
   static byte buffSize = 0;
 
   if (playNote && buffSize < BUFFER) {
-    // Add note
     oscPlay(note);
     buff[buffSize++] = note;
     return;
   }
 
   if (!playNote && buffSize > 0) {
-    // Remove note
     for (byte found = 0; found < buffSize; found++) {
       if (buff[found] == note) {
         for (byte gap = found; gap < buffSize - 1; gap++) {
@@ -175,21 +179,29 @@ void oscPlay(byte note) {
   float velo = 0.75 * (globalVelocity * DIV127);
   waveform1.amplitude(velo);
   envelope1.noteOn();
-  Serial.print("note - ");
-  Serial.println(note);
-  Serial.print("velo - ");
+  Serial.print("oscPlay note: ");
+  Serial.print(note);
+  Serial.print(", velocity amplitude: ");
   Serial.println(velo);
 }
 
 void oscStop() {
   envelope1.noteOff();
+  Serial.println("oscStop called");
 }
 
 void oscSet() {
   waveform1.frequency(noteFreqs[globalNote] * bendFactor);
+  Serial.print("oscSet frequency: ");
+  Serial.println(noteFreqs[globalNote] * bendFactor);
 }
 
 void myControlChange(byte channel, byte control, byte value) {
+  Serial.print("Control Change - Control: ");
+  Serial.print(control);
+  Serial.print(", Value: ");
+  Serial.println(value);
+  
   switch (control) {
     case CCmixer:
       myMotorControl(0, value);
@@ -225,6 +237,10 @@ void checkPots() {
   for (int i = 0; i < NUM_POTS; i++) {
     int currentValue = analogRead(potPins[i]);
     if (currentValue != previousValues[i]) {
+      Serial.print("Pot ");
+      Serial.print(i);
+      Serial.print(": ");
+      Serial.println(currentValue);
       handlePotUpdate(i, currentValue);
       previousValues[i] = currentValue;
     }
@@ -232,6 +248,10 @@ void checkPots() {
 }
 
 void handlePotUpdate(int index, int value) {
+  Serial.print("handlePotUpdate index: ");
+  Serial.print(index);
+  Serial.print(", value: ");
+  Serial.println(value);
   switch (index) {
     case 0:
       mixer1.gain(0, 0.9 * (value * DIV1023));
@@ -251,77 +271,99 @@ void handlePotUpdate(int index, int value) {
     case 5:
       if (value <= 256) {
         waveform1.begin(WAVEFORM_SINE);
+        Serial.println("Waveform: SINE");
       } else if (value <= 512) {
         waveform1.begin(WAVEFORM_TRIANGLE);
+        Serial.println("Waveform: TRIANGLE");
       } else if (value <= 765) {
         waveform1.begin(WAVEFORM_SAWTOOTH);
+        Serial.println("Waveform: SAWTOOTH");
       } else {
         waveform1.begin(WAVEFORM_PULSE);
+        Serial.println("Waveform: PULSE");
       }
       break;
     case 6:
       FILfreq = 10000 * (value * DIV1023);
+      Serial.print("Filter frequency set to: ");
+      Serial.println(FILfreq);
       break;
     case 7:
       filter1.resonance((4.3 * (value * DIV1023)) + 0.7);
+      Serial.print("Filter resonance set to: ");
+      Serial.println((4.3 * (value * DIV1023)) + 0.7);
       break;
     case 8:
       if (value <= 12 && value > 0) {
         bendRange = value;
+        Serial.print("Bend range set to: ");
+        Serial.println(bendRange);
       }
       break;
   }
 }
 
 void myMotorControl(int index, int value) {
-  // Map MIDI CC (0-127) to motor angle (0-315 degrees)
   int targetPosition = map(value, 0, 127, 0, 315);
-
-  // Read current position from potentiometer, map 0-1023 to 0-315 degrees
   int currentPosition = analogRead(potPins[index]) * 315 / 1023;
 
-  Serial.print("motor - ");
-  Serial.println(index);
-  Serial.print("value - ");
-  Serial.println(value);
+  Serial.print("myMotorControl index: ");
+  Serial.print(index);
+  Serial.print(", MIDI CC value: ");
+  Serial.print(value);
+  Serial.print(", Target Position: ");
+  Serial.print(targetPosition);
+  Serial.print(", Current Position: ");
+  Serial.println(currentPosition);
+
   currentPositions[index] = currentPosition;
 
   int error = targetPosition - currentPosition;
-
   const int deadzone = 2;
 
   if (abs(error) <= deadzone) {
+    Serial.println("Motor stopped due deadzone");
     stopMotor(index);
     return;
   }
 
   int speed = map(abs(error), 0, 315, 0, MAX_PWM);
   if (speed < 50) speed = 50;
+  Serial.print("Motor speed: ");
+  Serial.println(speed);
 
   if (error > 0) {
+    Serial.println("Motor moving forward");
     forwardMotor(index, speed);
   } else {
+    Serial.println("Motor moving backward");
     backwardMotor(index, speed);
   }
 
   delay(10);
 }
 
-// Motor control for TC1508A driver: 
-// motorPins[index][0] = IN1 (PWM)
-// motorPins[index][1] = IN2 (Digital LOW/HIGH)
-
 void forwardMotor(int index, int speed) {
-  analogWrite(motorPins[index][0], speed);  // PWM signal
-  digitalWrite(motorPins[index][1], LOW);   // IN2 LOW for forward
+  Serial.print("forwardMotor index: ");
+  Serial.print(index);
+  Serial.print(", speed: ");
+  Serial.println(speed);
+  analogWrite(motorPins[index][0], speed);
+  digitalWrite(motorPins[index][1], LOW);
 }
 
 void backwardMotor(int index, int speed) {
-  digitalWrite(motorPins[index][0], LOW);   // IN1 LOW
-  analogWrite(motorPins[index][1], speed);  // PWM signal on IN2 for backward
+  Serial.print("backwardMotor index: ");
+  Serial.print(index);
+  Serial.print(", speed: ");
+  Serial.println(speed);
+  digitalWrite(motorPins[index][0], LOW);
+  analogWrite(motorPins[index][1], speed);
 }
 
 void stopMotor(int index) {
+  Serial.print("stopMotor index: ");
+  Serial.println(index);
   digitalWrite(motorPins[index][0], LOW);
   digitalWrite(motorPins[index][1], LOW);
 }
