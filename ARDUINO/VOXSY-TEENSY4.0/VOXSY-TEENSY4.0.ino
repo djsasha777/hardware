@@ -282,41 +282,47 @@ void handlePotUpdate(int index, int value) {
 }
 
 void myMotorControl(int index, int value) {
-  // Превращаем MIDI CC 0-127 в скорось PWM 0-255
-  int speed = map(value, 0, 127, 0, 255);
+  // Превращаем MIDI CC 0-127 в скорость от 0 до MAX_STEP_FREQ
+  // Скорость — частота шагов в герцах, переводим в интервал в микросекундах
+  if (index < 0 || index >= NUM_MOTORS) return;
 
-  // Считаем смещение для направления из положения потенциометра
-  int currentPosition = analogRead(potPins[index]);
-  int midPoint = 512; // примерно середина диапазона
-
-  if (abs(currentPosition - midPoint) < 20) {
-    // Стоп мотор
-    digitalWrite(motorPins[index][0], LOW);
-    digitalWrite(motorPins[index][1], LOW);
+  int speedFreq = map(value, 0, 127, 0, MAX_STEP_FREQ);
+  if (speedFreq == 0) {
+    stopMotor(index);
     Serial.print("Motor stopped index: ");
     Serial.println(index);
     return;
   }
 
-  // Определяем направление
-  if (currentPosition > midPoint) {
-    // Вперёд
-    analogWrite(motorPins[index][0], speed);
-    digitalWrite(motorPins[index][1], LOW);
-    Serial.print("Motor forward index: ");
+  int currentPosition = analogRead(potPins[index]);
+  int midPoint = 512;
+
+  if (abs(currentPosition - midPoint) < 20) {
+    stopMotor(index);
+    Serial.print("Motor stopped index (pot near mid): ");
     Serial.println(index);
-  } else {
-    // Назад
-    analogWrite(motorPins[index][1], speed);
-    digitalWrite(motorPins[index][0], LOW);
-    Serial.print("Motor backward index: ");
-    Serial.println(index);
+    return;
   }
+
+  // Определяем направление
+  bool directionForward = (currentPosition > midPoint);
+
+  motorDirections[index] = directionForward;
+  digitalWrite(motorPins[index][0], directionForward ? HIGH : LOW);
+
+  // Вычисляем интервал шага в микросекундах (интервал = 1 / частота)
+  stepInterval[index] = 1000000UL / speedFreq;
+
+  Serial.print("Motor ");
+  Serial.print(index);
+  Serial.print(directionForward ? " forward" : " backward");
+  Serial.print(", step freq: ");
+  Serial.print(speedFreq);
+  Serial.print(" Hz, step interval: ");
+  Serial.println(stepInterval[index]);
 }
 
 void stopMotor(int index) {
   stepInterval[index] = 0;
-  digitalWrite(motorPins[index][1], LOW);
-  Serial.print("stopMotor index: ");
-  Serial.println(index);
+  digitalWrite(motorPins[index][1], LOW); // STEP LOW
 }
