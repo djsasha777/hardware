@@ -1,59 +1,38 @@
-// Teensy-4.0 TalkBox-MidiController
 #include <Audio.h>
 #include <Wire.h>
 #include <SPI.h>
 
-// pots
-#define NUM_POTS 9
-#define POT_RANGE 1023
+#define NUM_MOTORS 9
+#define MAX_PWM 255 // Используется для максимальной частоты шага
+#define MAX_STEP_FREQ 1000 // Максимальная частота шагов мотора (примерно)
 
+// Потенциометры
+#define NUM_POTS 9
 int potPins[NUM_POTS] = {A0, A1, A2, A3, A8, A10, A11, A12, A13};
-int currentPositions[NUM_POTS];
 int previousValues[NUM_POTS];
 
-// Motor control pins (pairs: IN1, IN2 for each motor)
-// Must support PWM outputs on Teensy 4.0
-const int motorPins[NUM_POTS][2] = {
-  {0, 1},    // Motor 1
-  {2, 3},    // Motor 2
-  {4, 5},    // Motor 3
-  {6, 9},    // Motor 4
-  {10, 11},  // Motor 5
-  {12, 28},  // Motor 6
-  {29, 33},  // Motor 7
-  {34, 35},  // Motor 8
-  {36, 37}   // Motor 9
+// Пины управления моторами TC1508A: {DIR, STEP}
+const int motorPins[NUM_MOTORS][2] = {
+  {0, 1},    // Motor 1 DIR, STEP
+  {2, 3},
+  {4, 5},
+  {6, 9},
+  {10, 11},
+  {12, 28},
+  {29, 33},
+  {34, 35},
+  {36, 37}
 };
 
-// Max PWM for Teensy 4.0
-#define MAX_PWM 255
+// Для хранения состояния направления моторов
+bool motorDirections[NUM_MOTORS];
 
-// MIDI CC control numbers
-#define CCmixer 20
-#define CCattack 21
-#define CCdecay 22
-#define CCsustain 23
-#define CCrelease 24
-#define CCosc 25
-#define CCfilterfreq 26
-#define CCfilterres 27
-#define CCbendrange 28
+// Для управления скоростью шагового мотора через таймеры или микросекундную генерацию импульсов
+unsigned long lastStepTime[NUM_MOTORS];
+unsigned int stepInterval[NUM_MOTORS]; // в микросекундах, 0 - стоп
 
-// Audio objects
-AudioSynthWaveform       waveform1;
-AudioMixer4              mixer1;
-AudioFilterStateVariable filter1;
-AudioEffectEnvelope      envelope1;
-AudioOutputI2S           i2s1;
-AudioConnection          patchCord5(waveform1, 0, mixer1, 0);
-AudioConnection          patchCord6(mixer1, 0, filter1, 0);
-AudioConnection          patchCord9(filter1, 0, envelope1, 0);
-AudioConnection          patchCord10(envelope1, 0, i2s1, 0);
-AudioConnection          patchCord11(envelope1, 0, i2s1, 1);
-AudioControlSGTL5000     sgtl5000_1;
-
-// GLOBAL VARIABLES
-const byte BUFFER = 8;
+// Остальной звуковой и MIDI код
+#define BUFFER 8
 const float noteFreqs[] = {
   8.176, 8.662, 9.177, 9.723, 10.301, 10.913, 11.562, 12.25, 12.978, 13.75,
   14.568, 15.434, 16.352, 17.324, 18.354, 19.445, 20.602, 21.827, 23.125, 24.5,
@@ -78,7 +57,29 @@ const float DIV1023 = (1.0 / 1023.0);
 float bendFactor = 1;
 int bendRange = 12;
 int FILfreq =  10000;
-float FILfactor = 1;
+
+AudioSynthWaveform       waveform1;
+AudioMixer4              mixer1;
+AudioFilterStateVariable filter1;
+AudioEffectEnvelope      envelope1;
+AudioOutputI2S           i2s1;
+AudioConnection          patchCord5(waveform1, 0, mixer1, 0);
+AudioConnection          patchCord6(mixer1, 0, filter1, 0);
+AudioConnection          patchCord9(filter1, 0, envelope1, 0);
+AudioConnection          patchCord10(envelope1, 0, i2s1, 0);
+AudioConnection          patchCord11(envelope1, 0, i2s1, 1);
+AudioControlSGTL5000     sgtl5000_1;
+
+// MIDI CC control numbers
+#define CCmixer 20
+#define CCattack 21
+#define CCdecay 22
+#define CCsustain 23
+#define CCrelease 24
+#define CCosc 25
+#define CCfilterfreq 26
+#define CCfilterres 27
+#define CCbendrange 28
 
 void setup() {
   Serial.begin(9600);
@@ -88,9 +89,10 @@ void setup() {
   usbMIDI.setHandleNoteOn(myNoteOn);
   usbMIDI.setHandlePitchChange(myPitchBend);
   Serial.println("MIDI init done");
-  
+
   sgtl5000_1.enable();
   sgtl5000_1.volume(0.9);
+
   waveform1.begin(WAVEFORM_SAWTOOTH);
   waveform1.amplitude(0.75);
   waveform1.frequency(82.41);
@@ -100,20 +102,44 @@ void setup() {
   envelope1.decay(0);
   envelope1.sustain(1);
   envelope1.release(500);
+
   Serial.println("AUDIO init done");
 
   for (int i = 0; i < NUM_POTS; ++i) {
-    pinMode(motorPins[i][0], OUTPUT);
-    pinMode(motorPins[i][1], OUTPUT);
+    pinMode(potPins[i], INPUT);
+    previousValues[i] = -1;
+  }
+
+  for (int i = 0; i < NUM_MOTORS; i++) {
+    pinMode(motorPins[i][0], OUTPUT);  // DIR
+    pinMode(motorPins[i][1], OUTPUT);  // STEP
     digitalWrite(motorPins[i][0], LOW);
     digitalWrite(motorPins[i][1], LOW);
-    previousValues[i] = -1; // init previousValues to invalid to detect first change
+    motorDirections[i] = false;
+    lastStepTime[i] = 0;
+    stepInterval[i] = 0; // стоп мотора
   }
 }
 
 void loop() {
   usbMIDI.read();
   checkPots();
+  updateMotors();
+}
+
+void updateMotors() {
+  unsigned long currentMicros = micros();
+
+  for (int i = 0; i < NUM_MOTORS; i++) {
+    if (stepInterval[i] > 0) { // мотор должен шагать
+      if (currentMicros - lastStepTime[i] >= stepInterval[i]) {
+        digitalWrite(motorPins[i][1], HIGH);
+        delayMicroseconds(5);
+        digitalWrite(motorPins[i][1], LOW);
+        lastStepTime[i] = currentMicros;
+      }
+    }
+  }
 }
 
 void myNoteOn(byte channel, byte note, byte velocity) {
@@ -147,13 +173,11 @@ void myPitchBend(byte channel, int bend) {
 void keyBuff(byte note, bool playNote) {
   static byte buff[BUFFER];
   static byte buffSize = 0;
-
   if (playNote && buffSize < BUFFER) {
     oscPlay(note);
     buff[buffSize++] = note;
     return;
   }
-
   if (!playNote && buffSize > 0) {
     for (byte found = 0; found < buffSize; found++) {
       if (buff[found] == note) {
@@ -192,8 +216,6 @@ void oscStop() {
 
 void oscSet() {
   waveform1.frequency(noteFreqs[globalNote] * bendFactor);
-  Serial.print("oscSet frequency: ");
-  Serial.println(noteFreqs[globalNote] * bendFactor);
 }
 
 void myControlChange(byte channel, byte control, byte value) {
@@ -201,35 +223,16 @@ void myControlChange(byte channel, byte control, byte value) {
   Serial.print(control);
   Serial.print(", Value: ");
   Serial.println(value);
-  
   switch (control) {
-    case CCmixer:
-      myMotorControl(0, value);
-      break;
-    case CCattack:
-      myMotorControl(1, value);
-      break;
-    case CCdecay:
-      myMotorControl(2, value);
-      break;
-    case CCsustain:
-      myMotorControl(3, value);
-      break;
-    case CCrelease:
-      myMotorControl(4, value);
-      break;
-    case CCosc:
-      myMotorControl(5, value);
-      break;
-    case CCfilterfreq:
-      myMotorControl(6, value);
-      break;
-    case CCfilterres:
-      myMotorControl(7, value);
-      break;
-    case CCbendrange:
-      myMotorControl(8, value);
-      break;
+    case CCmixer:      myMotorControl(0, value); break;
+    case CCattack:     myMotorControl(1, value); break;
+    case CCdecay:      myMotorControl(2, value); break;
+    case CCsustain:    myMotorControl(3, value); break;
+    case CCrelease:    myMotorControl(4, value); break;
+    case CCosc:        myMotorControl(5, value); break;
+    case CCfilterfreq: myMotorControl(6, value); break;
+    case CCfilterres:  myMotorControl(7, value); break;
+    case CCbendrange:  myMotorControl(8, value); break;
   }
 }
 
@@ -237,10 +240,6 @@ void checkPots() {
   for (int i = 0; i < NUM_POTS; i++) {
     int currentValue = analogRead(potPins[i]);
     if (currentValue != previousValues[i]) {
-      Serial.print("Pot ");
-      Serial.print(i);
-      Serial.print(": ");
-      Serial.println(currentValue);
       handlePotUpdate(i, currentValue);
       previousValues[i] = currentValue;
     }
@@ -248,10 +247,6 @@ void checkPots() {
 }
 
 void handlePotUpdate(int index, int value) {
-  Serial.print("handlePotUpdate index: ");
-  Serial.print(index);
-  Serial.print(", value: ");
-  Serial.println(value);
   switch (index) {
     case 0:
       mixer1.gain(0, 0.9 * (value * DIV1023));
@@ -269,36 +264,19 @@ void handlePotUpdate(int index, int value) {
       envelope1.release(3000 * (value * DIV1023));
       break;
     case 5:
-      if (value <= 256) {
-        waveform1.begin(WAVEFORM_SINE);
-        Serial.println("Waveform: SINE");
-      } else if (value <= 512) {
-        waveform1.begin(WAVEFORM_TRIANGLE);
-        Serial.println("Waveform: TRIANGLE");
-      } else if (value <= 765) {
-        waveform1.begin(WAVEFORM_SAWTOOTH);
-        Serial.println("Waveform: SAWTOOTH");
-      } else {
-        waveform1.begin(WAVEFORM_PULSE);
-        Serial.println("Waveform: PULSE");
-      }
+      if (value <= 256) waveform1.begin(WAVEFORM_SINE);
+      else if (value <= 512) waveform1.begin(WAVEFORM_TRIANGLE);
+      else if (value <= 765) waveform1.begin(WAVEFORM_SAWTOOTH);
+      else waveform1.begin(WAVEFORM_PULSE);
       break;
     case 6:
       FILfreq = 10000 * (value * DIV1023);
-      Serial.print("Filter frequency set to: ");
-      Serial.println(FILfreq);
       break;
     case 7:
       filter1.resonance((4.3 * (value * DIV1023)) + 0.7);
-      Serial.print("Filter resonance set to: ");
-      Serial.println((4.3 * (value * DIV1023)) + 0.7);
       break;
     case 8:
-      if (value <= 12 && value > 0) {
-        bendRange = value;
-        Serial.print("Bend range set to: ");
-        Serial.println(bendRange);
-      }
+      if (value <= 12 && value > 0) bendRange = value;
       break;
   }
 }
@@ -316,8 +294,6 @@ void myMotorControl(int index, int value) {
   Serial.print(", Current Position: ");
   Serial.println(currentPosition);
 
-  currentPositions[index] = currentPosition;
-
   int error = targetPosition - currentPosition;
   const int deadzone = 2;
 
@@ -327,43 +303,27 @@ void myMotorControl(int index, int value) {
     return;
   }
 
-  int speed = map(abs(error), 0, 315, 0, MAX_PWM);
-  if (speed < 50) speed = 50;
-  Serial.print("Motor speed: ");
-  Serial.println(speed);
-
   if (error > 0) {
-    Serial.println("Motor moving forward");
-    forwardMotor(index, speed);
+    digitalWrite(motorPins[index][0], HIGH);
+    motorDirections[index] = true;
   } else {
-    Serial.println("Motor moving backward");
-    backwardMotor(index, speed);
+    digitalWrite(motorPins[index][0], LOW);
+    motorDirections[index] = false;
   }
 
-  delay(10);
-}
+  int stepFreq = map(abs(error), 0, 315, 100, MAX_STEP_FREQ);
+  stepInterval[index] = 1000000 / stepFreq;
 
-void forwardMotor(int index, int speed) {
-  Serial.print("forwardMotor index: ");
-  Serial.print(index);
-  Serial.print(", speed: ");
-  Serial.println(speed);
-  analogWrite(motorPins[index][0], speed);
-  digitalWrite(motorPins[index][1], LOW);
-}
-
-void backwardMotor(int index, int speed) {
-  Serial.print("backwardMotor index: ");
-  Serial.print(index);
-  Serial.print(", speed: ");
-  Serial.println(speed);
-  digitalWrite(motorPins[index][0], LOW);
-  analogWrite(motorPins[index][1], speed);
+  Serial.print("Step frequency: ");
+  Serial.print(stepFreq);
+  Serial.print(" Hz, step interval: ");
+  Serial.print(stepInterval[index]);
+  Serial.println(" us");
 }
 
 void stopMotor(int index) {
+  stepInterval[index] = 0;
+  digitalWrite(motorPins[index][1], LOW);
   Serial.print("stopMotor index: ");
   Serial.println(index);
-  digitalWrite(motorPins[index][0], LOW);
-  digitalWrite(motorPins[index][1], LOW);
 }
