@@ -157,7 +157,8 @@ Player.prototype = {
         artist: 'Unknown Artist',  // можно заменить на реального исполнителя, если есть данные
         album: 'Unknown Album',    // можно заменить на название альбома, если есть данные
         artwork: [
-          // Пример: { src: 'path/to/artwork.png', sizes: '96x96', type: 'image/png' }
+          // Пример изображения обложки:
+          // { src: 'path/to/artwork.png', sizes: '96x96', type: 'image/png' }
         ]
       });
       navigator.mediaSession.setActionHandler('play', function() {
@@ -171,6 +172,14 @@ Player.prototype = {
       });
       navigator.mediaSession.setActionHandler('nexttrack', function() {
         player.skip('next');
+      });
+      navigator.mediaSession.setActionHandler('seekto', function(details) {
+        if (details.fastSeek && 'fastSeek' in player.playlist[player.index].howl) {
+          player.playlist[player.index].howl.fastSeek(details.seekTime);
+          return;
+        }
+        // details.seekTime - время в секундах, переводим в процент
+        player.seek(details.seekTime / player.playlist[player.index].howl.duration());
       });
     }
   },
@@ -470,4 +479,3 @@ var resize = function () {
 
 window.addEventListener('resize', resize);
 testos();
-
