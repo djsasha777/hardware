@@ -3,18 +3,28 @@
     "name": "button1",
     "url": "http://192.168.111.238/",
     "type": "button",
-    "conditions": ["on"]
+    "conditions": ["on"],
+    "secure": false
   },
   {
     "name": "button2",
     "url": "http://192.168.111.238/",
     "type": "button",
-    "conditions": ["long"]
+    "conditions": ["long"],
+    "secure": false
   },
   {
     "name": "light1",
     "url": "http://192.168.111.138/",
     "type": "light",
-    "conditions": ["on", "off", "value"]
+    "conditions": ["on", "off", "value"],
+    "secure": false
+  },
+  {
+    "name": "button2global",
+    "url": "https://home.spongo.ru/",
+    "type": "button",
+    "conditions": ["on"],
+    "secure": true
   }
 ]
