@@ -1,6 +1,7 @@
 #include <WiFi.h>
 #include <WebServer.h>
 #include <Preferences.h>
+#include <Update.h>
 
 const char* ap_ssid = "ESP32_AP";
 const char* ap_password = "12345678";
@@ -84,7 +85,42 @@ void handleSave() {
   }
 }
 
-// Обновление светодиода на пине 6 согласно состоянию outputPin
+// Отображение страницы OTA обновления
+void handleOTAPage() {
+  String page = "<!DOCTYPE html><html><head><title>OTA Update</title></head><body>";
+  page += "<h1>OTA обновление прошивки</h1>";
+  page += "<form method='POST' action='/update' enctype='multipart/form-data'>";
+  page += "<input type='file' name='firmware'>";
+  page += "<input type='submit' value='Обновить'>";
+  page += "</form></body></html>";
+  server.send(200, "text/html", page);
+}
+
+// Обработка загрузки OTA прошивки
+void handleOTAUpload() {
+  HTTPUpload& upload = server.upload();
+  if (upload.status == UPLOAD_FILE_START) {
+    Serial.printf("Начало загрузки файла: %s\n", upload.filename.c_str());
+    if (!Update.begin()) { // можно Specify max size if known
+      Update.printError(Serial);
+    }
+  } else if (upload.status == UPLOAD_FILE_WRITE) {
+    if (Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
+      Update.printError(Serial);
+    }
+  } else if (upload.status == UPLOAD_FILE_END) {
+    if (Update.end(true)) {
+      Serial.printf("Загрузка прошивки завершена: %u байт\n", upload.totalSize);
+      server.send(200, "text/plain", "OK, перезагрузка...");
+      delay(1000);
+      ESP.restart();
+    } else {
+      Update.printError(Serial);
+      server.send(500, "text/plain", "Ошибка обновления");
+    }
+  }
+}
+
 void updateLed() {
   if (WiFi.getMode() == WIFI_AP) {
     // В AP режиме светодиод мигает, это обработается в loop()
@@ -103,18 +139,23 @@ void startAccessPoint() {
   server.on("/toggle", handleToggle);
   server.on("/state", handleState);
   server.on("/save", handleSave);
+
+  server.on("/update", HTTP_GET, handleOTAPage);
+  server.on("/update", HTTP_POST, []() {
+    server.sendHeader("Connection", "close");
+  }, handleOTAUpload);
+
   server.begin();
   Serial.println("Точка доступа запущена: " + String(ap_ssid));
   Serial.println("IP: " + WiFi.softAPIP().toString());
 
-  // Включаем мигалку светодиода
   ledOn = false;
   lastLedToggle = millis();
 }
 
 void connectToWiFi() {
   WiFi.mode(WIFI_STA);
-  WiFi.setHostname(hostname);  // Задаем hostname перед подключением
+  WiFi.setHostname(hostname);
   WiFi.begin(wifiSSID.c_str(), wifiPassword.c_str());
   Serial.println("Подключение к WiFi: " + wifiSSID);
 
@@ -163,12 +204,13 @@ void setup() {
 void loop() {
   if (WiFi.getMode() == WIFI_AP) {
     server.handleClient();
+
     if (shouldConnectToWiFi) {
       delay(1000);
       shouldConnectToWiFi = false;
       connectToWiFi();
     }
-    // Мигаем светодиодом в AP режиме
+
     unsigned long now = millis();
     if (now - lastLedToggle >= ledInterval) {
       ledOn = !ledOn;
@@ -178,7 +220,7 @@ void loop() {
   } else {
     server.handleClient();
   }
-  
+
   int reading = digitalRead(buttonPin);
   if (reading != lastButtonState) {
     lastDebounceTime = millis();
