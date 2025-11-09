@@ -3,6 +3,7 @@ import Combine
 
 class ConfigLoader: ObservableObject {
     @Published var buttons: [ButtonConfig] = []
+    @Published var errorMessage: String? = nil
     private var timer: Timer?
 
     func startStatusPolling() {
@@ -16,12 +17,19 @@ class ConfigLoader: ObservableObject {
         for i in buttons.indices {
             let button = buttons[i]
             guard let statusUrl = URL(string: button.url + "/status") else { continue }
-            URLSession.shared.dataTask(with: statusUrl) { [weak self] data, _, _ in
-                guard let data = data,
-                      let statusString = String(data: data, encoding: .utf8)?
-                        .trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-                else { return }
+            URLSession.shared.dataTask(with: statusUrl) { [weak self] data, _, error in
                 DispatchQueue.main.async {
+                    if let error = error {
+                        self?.errorMessage = "Ошибка сети: \(error.localizedDescription)"
+                        return
+                    }
+                    guard let data = data,
+                        let statusString = String(data: data, encoding: .utf8)?
+                            .trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+                    else {
+                        self?.errorMessage = "Некорректные данные состояния"
+                        return
+                    }
                     self?.buttons[i].isOn = (statusString == "on")
                 }
             }.resume()
@@ -35,8 +43,7 @@ class ConfigLoader: ObservableObject {
         if button.secure, let login = button.login, let password = button.password {
             let authString = "\(login):\(password)"
             if let authData = authString.data(using: .utf8) {
-                let authValue = "Basic \(authData.base64EncodedString())"
-                request.setValue(authValue, forHTTPHeaderField: "Authorization")
+                request.setValue("Basic \(authData.base64EncodedString())", forHTTPHeaderField: "Authorization")
             }
         }
         URLSession.shared.dataTask(with: request).resume()

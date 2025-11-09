@@ -17,6 +17,7 @@ struct ContentView: View {
     @State private var showingAddButton = false
     @State private var showingImport = false
     @State private var editingButton: ButtonConfig?
+    @State private var showAlert = false
 
     var body: some View {
         VStack {
@@ -26,11 +27,13 @@ struct ContentView: View {
                     showingAddButton = true
                 }) {
                     Label("Плюс", systemImage: "plus")
+                        .font(.title2)
                 }
                 .padding()
                 Spacer()
                 Button(action: { showingImport = true }) {
                     Label("Импорт", systemImage: "square.and.arrow.down")
+                        .font(.title2)
                 }
                 .padding()
             }
@@ -40,14 +43,18 @@ struct ContentView: View {
                 LazyVStack(spacing: 12) {
                     ForEach($configLoader.buttons) { $button in
                         Button(action: {
-                            configLoader.sendPostRequest(to: button)
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                configLoader.sendPostRequest(to: button)
+                            }
                         }) {
                             Text(button.name)
                                 .padding()
                                 .frame(maxWidth: .infinity)
                                 .background(button.isOn ? Color.blue : Color.gray)
+                                .scaleEffect(button.isOn ? 1.05 : 1.0)
                                 .foregroundColor(.white)
                                 .cornerRadius(10)
+                                .animation(.easeInOut(duration: 0.4), value: button.isOn)
                         }
                         .contextMenu {
                             Button("Изменить") {
@@ -72,6 +79,14 @@ struct ContentView: View {
         .onAppear {
             configLoader.startStatusPolling()
         }
+        .alert("Ошибка", isPresented: $showAlert, actions: {
+            Button("OK", role: .cancel) {}
+        }, message: {
+            Text(configLoader.errorMessage ?? "Неизвестная ошибка")
+        })
+        .onReceive(configLoader.$errorMessage) { errorMsg in
+            if errorMsg != nil { showAlert = true }
+        }
     }
 }
 
@@ -92,9 +107,13 @@ struct AddButtonView: View {
             Form {
                 TextField("Имя кнопки", text: $name)
                 TextField("URL", text: $url)
+                    .autocapitalization(.none)
+                    .disableAutocorrection(true)
                 Toggle("Secure", isOn: $secure)
                 if secure {
                     TextField("Логин", text: $login)
+                        .autocapitalization(.none)
+                        .disableAutocorrection(true)
                     SecureField("Пароль", text: $password)
                 }
             }
@@ -149,6 +168,8 @@ struct ImportView: View {
             Form {
                 Section {
                     TextField("URL JSON конфигурации", text: $importUrl)
+                        .autocapitalization(.none)
+                        .disableAutocorrection(true)
                     if let error = errorMessage {
                         Text(error).foregroundColor(.red)
                     }

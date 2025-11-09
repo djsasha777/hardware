@@ -24,8 +24,7 @@ struct SendPostIntent: AppIntent {
         if !login.isEmpty && !password.isEmpty {
             let authString = "\(login):\(password)"
             if let authData = authString.data(using: .utf8) {
-                let authValue = "Basic \(authData.base64EncodedString())"
-                request.setValue(authValue, forHTTPHeaderField: "Authorization")
+                request.setValue("Basic \(authData.base64EncodedString())", forHTTPHeaderField: "Authorization")
             }
         }
         URLSession.shared.dataTask(with: request).resume()
@@ -34,29 +33,86 @@ struct SendPostIntent: AppIntent {
 }
 
 @available(iOSApplicationExtension 18.0, *)
-struct ControlProvider: ControlValueProvider {
-    typealias Value = Void
-    var previewValue: Value { () }
-    func currentValue() async throws -> Value { () }
+struct ControlProvider: TimelineProvider {
+    typealias Entry = SimpleEntry
+
+    func placeholder(in context: Context) -> SimpleEntry {
+        SimpleEntry(date: Date(), buttons: [])
+    }
+
+    func getSnapshot(in context: Context, completion: @escaping (SimpleEntry) -> ()) {
+        let entry = SimpleEntry(date: Date(), buttons: [])
+        completion(entry)
+    }
+
+    func getTimeline(in context: Context, completion: @escaping (Timeline<SimpleEntry>) -> ()) {
+        // Здесь надо получить состояние кнопок из общего хранилища (например, App Group UserDefaults)
+        // Для примера создаем статичные данные
+
+        var entries: [SimpleEntry] = []
+        let currentDate = Date()
+        for offset in 0..<5 {
+            let entryDate = Calendar.current.date(byAdding: .second, value: offset * 5, to: currentDate)!
+            let buttons = [
+                WidgetButton(name: "Button1", isOn: offset % 2 == 0, url: "https://example.com/api/btn1", login: "", password: ""),
+                WidgetButton(name: "Button2", isOn: offset % 2 != 0, url: "https://example.com/api/btn2", login: "", password: "")
+            ]
+            entries.append(SimpleEntry(date: entryDate, buttons: buttons))
+        }
+        let timeline = Timeline(entries: entries, policy: .atEnd)
+        completion(timeline)
+    }
 }
 
 @available(iOSApplicationExtension 18.0, *)
-struct DynamicControlWidget: ControlWidget {
-    let kind: String = "com.example.dynamiccontrolwidget"
+struct SimpleEntry: TimelineEntry {
+    let date: Date
+    let buttons: [WidgetButton]
+}
 
-    var body: some ControlWidgetConfiguration {
-        StaticControlConfiguration(kind: kind, provider: ControlProvider()) { _ in
-            VStack {
-                // Здесь можно динамически загружать кнопки из общего хранилища конфигурации
+@available(iOSApplicationExtension 18.0, *)
+struct WidgetButton: Identifiable {
+    var id = UUID()
+    var name: String
+    var isOn: Bool
+    var url: String
+    var login: String
+    var password: String
+}
 
-                // Пример кнопки
-                Button("Send Request") {
-                    _ = try? await SendPostIntent(urlString: "https://spongo.ru/someendpoint", login: "", password: "").perform()
+@available(iOSApplicationExtension 18.0, *)
+struct DynamicControlWidgetEntryView : View {
+    var entry: ControlProvider.Entry
+
+    var body: some View {
+        VStack {
+            ForEach(entry.buttons) { button in
+                Button(button.name) {
+                    Task {
+                        _ = try? await SendPostIntent(urlString: button.url, login: button.login, password: button.password).perform()
+                    }
                 }
-                .tint(.blue)
+                .padding(8)
+                .frame(maxWidth: .infinity)
+                .background(button.isOn ? Color.green : Color.red)
+                .foregroundColor(.white)
+                .cornerRadius(8)
             }
         }
-        .configurationDisplayName("Dynamic Controls")
-        .description("Widget with dynamic HTTP POST buttons")
+        .padding()
+    }
+}
+
+@main
+struct DynamicControlWidget: Widget {
+    let kind: String = "com.example.dynamiccontrolwidget"
+
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: kind, provider: ControlProvider()) { entry in
+            DynamicControlWidgetEntryView(entry: entry)
+        }
+        .configurationDisplayName("Динамический контрол")
+        .description("Виджет с состоянием кнопок")
+        .supportedFamilies([.systemSmall, .systemMedium])
     }
 }
