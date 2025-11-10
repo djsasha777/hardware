@@ -4,7 +4,7 @@
     "url": "http://192.168.111.238/",
     "addr": "button1",
     "type": "button",
-    "condition": ["on"],
+    "condition": "on",
     "secure": false
   },
   {
@@ -12,7 +12,7 @@
     "url": "http://192.168.111.238/",
     "addr": "button2",
     "type": "button",
-    "condition": ["long"],
+    "condition": "long",
     "secure": false
   },
   {
@@ -20,7 +20,7 @@
     "url": "http://192.168.111.138/",
     "addr": "light1",
     "type": "light",
-    "condition": ["value"],
+    "condition": "value",
     "secure": false
   },
   {
@@ -28,7 +28,7 @@
     "url": "https://home.spongo.ru/",
     "addr": "button1",
     "type": "button",
-    "condition": ["on"],
+    "condition": "on",
     "secure": true
   }
 ]
