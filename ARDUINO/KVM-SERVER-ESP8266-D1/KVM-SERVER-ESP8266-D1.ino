@@ -2,94 +2,188 @@
 #include <WiFiClient.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266mDNS.h>
-#ifndef STASSID
-#define STASSID "*******"
-#define STAPSK  "*******"
-#endif
+#include <EEPROM.h>
+#include <Updater.h>  // for OTA update
 
-const char* ssid = STASSID;
-const char* password = STAPSK;
-
-WiFiServer server(80);
-
-String header;
 const int output = D4;
+const int ledPin = LED_BUILTIN;
 
-void setup() {
-  Serial.begin(115200);
-  Serial.print("Connecting to ");
-  Serial.println(ssid);
-  WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) {
+ESP8266WebServer server(80);
+
+String wifiSSID = "";
+String wifiPassword = "";
+
+void saveWiFiCredentials(const String& ssid, const String& pass) {
+  EEPROM.begin(512);
+  for (int i = 0; i < 32; i++) EEPROM.write(i, 0);
+  for (int i = 0; i < 64; i++) EEPROM.write(100 + i, 0);
+  for (int i = 0; i < ssid.length() && i < 31; i++) EEPROM.write(i, ssid[i]);
+  EEPROM.write(ssid.length(), 0);
+  for (int i = 0; i < pass.length() && i < 63; i++) EEPROM.write(100 + i, pass[i]);
+  EEPROM.write(100 + pass.length(), 0);
+  EEPROM.commit();
+  Serial.println("WiFi credentials saved");
+}
+
+void loadWiFiCredentials() {
+  char ssid[32];
+  char pass[64];
+  EEPROM.begin(512);
+  for (int i = 0; i < 31; i++) {
+    ssid[i] = EEPROM.read(i);
+    if (ssid[i] == 0) break;
+  }
+  ssid[31] = 0;
+  for (int i = 0; i < 63; i++) {
+    pass[i] = EEPROM.read(100 + i);
+    if (pass[i] == 0) break;
+  }
+  pass[63] = 0;
+  wifiSSID = String(ssid);
+  wifiPassword = String(pass);
+}
+
+void startAP() {
+  WiFi.mode(WIFI_AP);
+  WiFi.softAP("ESP8266_AP", "12345678");
+  IPAddress apIP(10, 10, 10, 1);
+  WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
+
+  Serial.print("Access Point started. IP: ");
+  Serial.println(WiFi.softAPIP());
+
+  // Web handlers for AP mode
+  server.on("/", []() {
+    String page = "<html><body><h1>Configure WiFi</h1>";
+    page += "<form action='/save' method='POST'>";
+    page += "SSID:<br><input name='ssid' length=32><br>";
+    page += "Password:<br><input name='password' type='password' length=64><br>";
+    page += "<input type='submit' value='Save'>";
+    page += "</form></body></html>";
+    server.send(200, "text/html", page);
+  });
+
+  server.on("/save", HTTP_POST, []() {
+    wifiSSID = server.arg("ssid");
+    wifiPassword = server.arg("password");
+    saveWiFiCredentials(wifiSSID, wifiPassword);
+    server.send(200, "text/html", "<html><body><h1>Saved! Rebooting...</h1></body></html>");
+    delay(2000);
+    ESP.restart();
+  });
+
+  // OTA update page
+  server.on("/update", HTTP_GET, []() {
+    String page = "<html><body><h1>OTA Update</h1>";
+    page += "<form method='POST' action='/update' enctype='multipart/form-data'>";
+    page += "<input type='file' name='update'><br>";
+    page += "<input type='submit' value='Update'>";
+    page += "</form></body></html>";
+    server.send(200, "text/html", page);
+  });
+
+  server.on("/update", HTTP_POST, []() {
+    server.sendHeader("Connection", "close");
+    server.send(200, "text/plain", (Update.hasError()) ? "Update Failed" : "Update Success. Restarting...");
+    ESP.restart();
+  }, []() {
+    HTTPUpload& upload = server.upload();
+    if (upload.status == UPLOAD_FILE_START) {
+      Serial.printf("Update Start: %s\n", upload.filename.c_str());
+      if (!Update.begin()) {
+        Update.printError(Serial);
+      }
+    } else if (upload.status == UPLOAD_FILE_WRITE) {
+      if (Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
+        Update.printError(Serial);
+      }
+    } else if (upload.status == UPLOAD_FILE_END) {
+      if (Update.end(true)) {
+        Serial.println("Update Completed.");
+      } else {
+        Update.printError(Serial);
+      }
+    }
+  });
+
+  server.begin();
+}
+
+void connectSTA() {
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(wifiSSID.c_str(), wifiPassword.c_str());
+
+  Serial.print("Connecting to WiFi ");
+  Serial.println(wifiSSID);
+
+  unsigned long startAttemptTime = millis();
+
+  while (WiFi.status() != WL_CONNECTED && millis() - startAttemptTime < 10000) {
     delay(500);
     Serial.print(".");
   }
-  Serial.println("");
-  Serial.println("WiFi connected.");
-  Serial.println("IP address: ");
-  Serial.println(WiFi.localIP());
-  server.begin();
+  Serial.println();
+
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("Connected to WiFi.");
+    Serial.print("IP address: ");
+    Serial.println(WiFi.localIP());
+  } else {
+    Serial.println("Failed to connect, starting AP.");
+    startAP();
+  }
+}
+
+// Your existing root handler for pin control
+void handleRoot() {
+  String page =
+    "<!DOCTYPE html><html><head><title>ESP8266 KVM</title></head><body>"
+    "<h1>ESP8266 KVM</h1>"
+    "<p><a href=\"/button/on\"><button>POWER ON</button></a></p>"
+    "<p><a href=\"/button/long\"><button>LONG PRESS</button></a></p>"
+    "</body></html>";
+  server.send(200, "text/html", page);
+}
+
+void handleButtonOn() {
+  digitalWrite(output, HIGH);
+  delay(200);
+  digitalWrite(output, LOW);
+  Serial.println("Pin D4 HIGH pulse");
+  server.send(200, "text/html", "OK");
+}
+
+void handleButtonLong() {
+  digitalWrite(output, HIGH);
+  delay(5000);
+  digitalWrite(output, LOW);
+  Serial.println("Pin D4 long HIGH pulse");
+  server.send(200, "text/html", "OK");
+}
+
+void setup() {
+  Serial.begin(115200);
   pinMode(output, OUTPUT);
   digitalWrite(output, LOW);
+  pinMode(ledPin, OUTPUT);
+  digitalWrite(ledPin, LOW);
+
+  loadWiFiCredentials();
+
+  if (wifiSSID.length() > 0 && wifiPassword.length() > 0) {
+    connectSTA();
+  } else {
+    startAP();
+  }
+
+  // Setup server routes
+  server.on("/", handleRoot);
+  server.on("/button/on", handleButtonOn);
+  server.on("/button/long", handleButtonLong);
+
+  server.begin();
 }
 
 void loop() {
-  WiFiClient client = server.available();
-  if (client) {
-    Serial.println("New Client.");
-    String currentLine = "";
-    while (client.connected()) {
-      if (client.available()) {
-        char c = client.read();
-        Serial.write(c);
-        header += c;
-        if (c == '\n') {
-          if (currentLine.length() == 0) {
-            client.println("HTTP/1.1 200 OK");
-            client.println("Content-type:text/html");
-            client.println("Connection: close");
-            client.println();
-
-            if (header.indexOf("GET /on") >= 0) {
-              digitalWrite(output, HIGH);
-              Serial.println("SENDING_HIGH_STATE_OF_PIN_4");
-              delay(200);
-              digitalWrite(output, LOW);
-              Serial.println("SENDING_LOW_STATE_OF_PIN_4");
-            }
-            if (header.indexOf("GET /long") >= 0) {
-              Serial.println("LONG-KEY-UP");
-              digitalWrite(output, HIGH);
-              delay(5000);
-              digitalWrite(output, LOW);
-              Serial.println("LONG-KEY-DOWN");
-            }
-
-            client.println("<!DOCTYPE html><html>");
-            client.println("<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
-            client.println("<link rel=\"icon\" href=\"data:,\">");
-            client.println("<style>html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}");
-            client.println(".button { background-color: #195B6A; border: none; color: white; padding: 16px 40px;");
-            client.println("text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}");
-            client.println(".button2 {background-color: #77878A;}</style></head>");
-            client.println("<body><h1>ESP8266 KVM</h1>");
-            client.println("<p><a href=\"/on\"><button class=\"button\">POWER ON</button></a></p>");
-            client.println("<p><a href=\"/long\"><button class=\"button\">LONG PRESS</button></a></p>");
-            client.println("</body></html>");
-            client.println();
-
-            break;
-          } else {
-            currentLine = "";
-          }
-        } else if (c != '\r') {
-          currentLine += c;
-        }
-      }
-    }
-    header = "";
-    client.stop();
-    Serial.println("Client disconnected.");
-    Serial.println("");
-  }
+  server.handleClient();
 }

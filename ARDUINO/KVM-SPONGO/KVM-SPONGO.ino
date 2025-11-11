@@ -1,126 +1,208 @@
-
 #include <WiFi.h>
+#include <WebServer.h>
+#include <Update.h>
+#include <Preferences.h>
 
-const char* ssid     = "********";
-const char* password = "********";
+const char* ap_ssid = "ESP32_AP";
+const char* ap_password = "12345678";
+const char* hostname = "esp32-switch";
 
-WiFiServer server(80);
+IPAddress apIP(10, 10, 10, 1);
 
-int value = 0;
+WebServer server(80);
+Preferences preferences;
+
+int outputPin1 = 33; 
+int outputPin2 = 21;
+int outputPin3 = 32;
+
+String wifiSSID = "";
+String wifiPassword = "";
+
+bool shouldConnectToWiFi = false;
 unsigned long previousMillis = 0;
-unsigned long interval = 30000; 
+const unsigned long interval = 30000;
 
-void setup()
-{
-    Serial.begin(115200);
-    pinMode(33, OUTPUT);      // set the LED pin mode
-    digitalWrite(33, HIGH); 
-    delay(10);
-    Serial.println();
-    Serial.println();
-    Serial.print("Connecting to ");
-    Serial.println(ssid);
-
-    WiFi.begin(ssid, password);
-
-    while (WiFi.status() != WL_CONNECTED) {
-        delay(500);
-        Serial.print(".");
-    }
-
-    Serial.println("");
-    Serial.println("WiFi connected.");
-    Serial.println("IP address: ");
-    Serial.println(WiFi.localIP());
-    server.begin();
-
-  pinMode(21, OUTPUT);
-  pinMode(32, OUTPUT);
-
+void handleRoot() {
+  String page = "<!DOCTYPE html><html><head><meta name='viewport' content='width=device-width, initial-scale=1'>";
+  page += "<style>html { font-family: Helvetica; text-align: center; } ";
+  page += ".button { background-color: #195B6A; border: none; color: white; padding: 16px 40px; font-size: 30px; margin: 2px; cursor: pointer;}</style>";
+  page += "</head><body><h1>SPONGO SWITCH</h1>";
+  page += "<p><a href='/button1/on'><button class='button'>POWER ON</button></a></p>";
+  page += "<p><a href='/button1/off'><button class='button'>POWER OFF</button></a></p>";
+  page += "<p><a href='/button2/on'><button class='button'>1 POWER ON</button></a></p>";
+  page += "<p><a href='/button2/off'><button class='button'>1 POWER OFF</button></a></p>";
+  page += "<p><a href='/button3/on'><button class='button'>2 POWER ON</button></a></p>";
+  page += "<p><a href='/button3/off'><button class='button'>2 POWER OFF</button></a></p>";
+  page += "</body></html>";
+  server.send(200, "text/html", page);
 }
 
-void loop(){
+void handleButton1On() {
+  digitalWrite(outputPin1, LOW);
+  server.send(200, "text/html", "Button1 ON done");
+}
+
+void handleButton1Off() {
+  digitalWrite(outputPin1, HIGH);
+  server.send(200, "text/html", "Button1 OFF done");
+}
+
+void handleButton2On() {
+  digitalWrite(outputPin2, HIGH);
+  server.send(200, "text/html", "Button2 ON done");
+}
+
+void handleButton2Off() {
+  digitalWrite(outputPin2, LOW);
+  server.send(200, "text/html", "Button2 OFF done");
+}
+
+void handleButton3On() {
+  digitalWrite(outputPin3, HIGH);
+  server.send(200, "text/html", "Button3 ON done");
+}
+
+void handleButton3Off() {
+  digitalWrite(outputPin3, LOW);
+  server.send(200, "text/html", "Button3 OFF done");
+}
+
+void handleSave() {
+  if (server.method() == HTTP_POST) {
+    wifiSSID = server.arg("ssid");
+    wifiPassword = server.arg("password");
+    preferences.begin("wifi-creds", false);
+    preferences.putString("ssid", wifiSSID);
+    preferences.putString("password", wifiPassword);
+    preferences.end();
+    server.send(200, "text/html", "<html><body><h2>Credentials saved. Rebooting...</h2></body></html>");
+    delay(2000);
+    ESP.restart();
+  } else {
+    server.send(405, "text/plain", "Method Not Allowed");
+  }
+}
+
+void handleOTAPage() {
+  String page = "<html><body><h1>OTA Update</h1>";
+  page += "<form method='POST' action='/update' enctype='multipart/form-data'>";
+  page += "<input type='file' name='update'><br>";
+  page += "<input type='submit' value='Update'>";
+  page += "</form></body></html>";
+  server.send(200, "text/html", page);
+}
+
+void handleOTAUpload() {
+  HTTPUpload& upload = server.upload();
+  if (upload.status == UPLOAD_FILE_START) {
+    Serial.printf("OTA Update Start: %s\n", upload.filename.c_str());
+    if (!Update.begin(UPDATE_SIZE_UNKNOWN)) {
+      Update.printError(Serial);
+    }
+  } else if (upload.status == UPLOAD_FILE_WRITE) {
+    if (Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
+      Update.printError(Serial);
+    }
+  } else if (upload.status == UPLOAD_FILE_END) {
+    if (Update.end(true)) {
+      Serial.printf("OTA Update Ended: %u bytes\n", upload.totalSize);
+      server.send(200, "text/plain", "Update Success. Rebooting...");
+      delay(1000);
+      ESP.restart();
+    } else {
+      Update.printError(Serial);
+      server.send(500, "text/plain", "Update Failed");
+    }
+  }
+}
+
+void startAccessPoint() {
+  WiFi.mode(WIFI_AP);
+  WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
+  WiFi.softAP(ap_ssid, ap_password);
+  Serial.println("Access Point started: " + String(ap_ssid));
+  Serial.println("IP: " + WiFi.softAPIP().toString());
+
+  server.on("/", HTTP_GET, []() {
+    String page = "<html><body><h1>Configure WiFi</h1>";
+    page += "<form action='/save' method='POST'>";
+    page += "SSID: <input name='ssid' length=32><br>";
+    page += "Password: <input name='password' type='password' length=64><br>";
+    page += "<input type='submit' value='Save'>";
+    page += "</form></body></html>";
+    server.send(200, "text/html", page);
+  });
+
+  server.on("/save", HTTP_POST, handleSave);
+  server.on("/update", HTTP_GET, handleOTAPage);
+  server.on("/update", HTTP_POST, []() { server.sendHeader("Connection", "close"); server.send(200); }, handleOTAUpload);
+
+  server.begin();
+}
+
+void connectToWiFi() {
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(wifiSSID.c_str(), wifiPassword.c_str());
+  Serial.println("Connecting to WiFi: " + wifiSSID);
+
+  unsigned long startAttemptTime = millis();
+  while (WiFi.status() != WL_CONNECTED && millis() - startAttemptTime < 10000) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println();
+
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("Connected.");
+    Serial.print("IP: "); Serial.println(WiFi.localIP());
+  } else {
+    Serial.println("Failed to connect. Starting AP.");
+    startAccessPoint();
+  }
+}
+
+void setup() {
+  Serial.begin(115200);
+
+  pinMode(outputPin1, OUTPUT);
+  pinMode(outputPin2, OUTPUT);
+  pinMode(outputPin3, OUTPUT);
+
+  digitalWrite(outputPin1, HIGH);
+  digitalWrite(outputPin2, LOW);
+  digitalWrite(outputPin3, LOW);
+
+  preferences.begin("wifi-creds", true);
+  wifiSSID = preferences.getString("ssid", "");
+  wifiPassword = preferences.getString("password", "");
+  preferences.end();
+
+  if (wifiSSID.length() > 0 && wifiPassword.length() > 0) {
+    connectToWiFi();
+  } else {
+    startAccessPoint();
+  }
+
+  // Web server routes
+  server.on("/", HTTP_GET, handleRoot);
+  server.on("/button1/on", HTTP_GET, handleButton1On);
+  server.on("/button1/off", HTTP_GET, handleButton1Off);
+  server.on("/button2/on", HTTP_GET, handleButton2On);
+  server.on("/button2/off", HTTP_GET, handleButton2Off);
+  server.on("/button3/on", HTTP_GET, handleButton3On);
+  server.on("/button3/off", HTTP_GET, handleButton3Off);
+
+  server.begin();
+}
+
+void loop() {
   unsigned long currentMillis = millis();
-  // if WiFi is down, try reconnecting every CHECK_WIFI_TIME seconds
-  if ((WiFi.status() != WL_CONNECTED) && (currentMillis - previousMillis >=interval)) {
-    Serial.print(millis());
+  if (WiFi.status() != WL_CONNECTED && currentMillis - previousMillis >= interval) {
     Serial.println("Reconnecting to WiFi...");
     WiFi.disconnect();
     WiFi.reconnect();
     previousMillis = currentMillis;
   }
- WiFiClient client = server.available();   // listen for incoming clients
-
-  if (client) {                             // if you get a client,
-    Serial.println("New Client.");           // print a message out the serial port
-    String currentLine = "";                // make a String to hold incoming data from the client
-    while (client.connected()) {            // loop while the client's connected
-      if (client.available()) {             // if there's bytes to read from the client,
-        char c = client.read();             // read a byte, then
-        Serial.write(c);                    // print it out the serial monitor
-        if (c == '\n') {                    // if the byte is a newline character
-
-          // if the current line is blank, you got two newline characters in a row.
-          // that's the end of the client HTTP request, so send a response:
-          if (currentLine.length() == 0) {
-            // HTTP headers always start with a response code (e.g. HTTP/1.1 200 OK)
-            // and a content-type so the client knows what's coming, then a blank line:
-            client.println("HTTP/1.1 200 OK");
-            client.println("Content-type:text/html");
-            client.println();
-
-            client.println("<!DOCTYPE html><html>");
-            client.println("<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
-            client.println("<link rel=\"icon\" href=\"data:,\">");
-            client.println("<style>html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}");
-            client.println(".button { background-color: #195B6A; border: none; color: white; padding: 16px 40px;");
-            client.println("text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}");
-            client.println(".button2 {background-color: #77878A;}</style></head>");
-            client.println("<body><h1>SPONGO SWITCH</h1>");
-            client.println("<p><a href=\"/on\"><button class=\"button\">POWER ON</button></a></p>");
-            client.println("<p><a href=\"/off\"><button class=\"button\">POWER OFF</button></a></p>");
-            client.println("<p><a href=\"/1on\"><button class=\"button\">1 POWER ON</button></a></p>");
-            client.println("<p><a href=\"/1off\"><button class=\"button\">1 POWER OFF</button></a></p>");
-            client.println("<p><a href=\"/2on\"><button class=\"button\">2 POWER ON</button></a></p>");
-            client.println("<p><a href=\"/2off\"><button class=\"button\">2 POWER OFF</button></a></p>");
-            client.println("</body></html>");
-            client.println();
-
-            // The HTTP response ends with another blank line:
-            client.println();
-            // break out of the while loop:
-            break;
-          } else {    // if you got a newline, then clear currentLine:
-            currentLine = "";
-          }
-        } else if (c != '\r') {  // if you got anything else but a carriage return character,
-          currentLine += c;      // add it to the end of the currentLine
-        }
-
-        // Check to see if the client request was "GET /H" or "GET /L":
-        if (currentLine.endsWith("GET /on")) {
-          digitalWrite(33, LOW);               // GET /H turns the LED on
-        }
-        if (currentLine.endsWith("GET /off")) {
-          digitalWrite(33, HIGH);                // GET /L turns the LED off
-        }
-        if (currentLine.endsWith("GET /1on")) {
-          digitalWrite(21, HIGH);
-        }
-        if (currentLine.endsWith("GET /1off")) {
-          digitalWrite(21, LOW);
-        }
-        if (currentLine.endsWith("GET /2on")) {
-          digitalWrite(32, HIGH);
-        }
-        if (currentLine.endsWith("GET /2off")) {
-          digitalWrite(32, LOW);
-        }
-      }
-    }
-    // close the connection:
-    client.stop();
-    Serial.println("Client Disconnected.");
-  }
+  server.handleClient();
 }
-
