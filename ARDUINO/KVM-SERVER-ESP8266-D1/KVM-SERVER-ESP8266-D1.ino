@@ -139,8 +139,8 @@ void handleRoot() {
   String page =
     "<!DOCTYPE html><html><head><title>ESP8266 KVM</title></head><body>"
     "<h1>ESP8266 KVM</h1>"
-    "<p><a href=\"/button/on\"><button>POWER ON</button></a></p>"
-    "<p><a href=\"/button/long\"><button>LONG PRESS</button></a></p>"
+    "<p><a href=\"/button1/on\"><button>POWER ON</button></a></p>"
+    "<p><a href=\"/button1/long\"><button>LONG PRESS</button></a></p>"
     "</body></html>";
   server.send(200, "text/html", page);
 }
@@ -178,8 +178,8 @@ void setup() {
 
   // Setup server routes
   server.on("/", handleRoot);
-  server.on("/button/on", handleButtonOn);
-  server.on("/button/long", handleButtonLong);
+  server.on("/button1/on", handleButtonOn);
+  server.on("/button1/long", handleButtonLong);
 
   server.begin();
 }
