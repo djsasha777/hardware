@@ -2,7 +2,7 @@
   {
     "name": "button1",
     "url": "http://192.168.111.238/",
-    "addr": "button1",
+    "addr": "servermain",
     "type": "button",
     "condition": "on",
     "secure": false
@@ -10,7 +10,7 @@
   {
     "name": "button2",
     "url": "http://192.168.111.238/",
-    "addr": "button2",
+    "addr": "servermainlong",
     "type": "button",
     "condition": "long",
     "secure": false
