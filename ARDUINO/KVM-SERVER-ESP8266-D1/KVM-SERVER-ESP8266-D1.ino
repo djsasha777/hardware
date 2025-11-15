@@ -43,7 +43,7 @@ void loadWiFiCredentials() {
 
 // Регистрируем маршруты основного сервера в режиме STA, сохраняя логику управления пином
 void setupSTAWebRoutes() {
-  server.on("/button/1/on", []() {
+  server.on("/button1/on", []() {
     digitalWrite(output, HIGH);
     delay(200);
     digitalWrite(output, LOW);
@@ -51,7 +51,7 @@ void setupSTAWebRoutes() {
     server.send(200, "text/html", "OK");
   });
 
-  server.on("/button/2/long", []() {
+  server.on("/button2/long", []() {
     digitalWrite(output, HIGH);
     delay(5000);
     digitalWrite(output, LOW);
@@ -64,8 +64,8 @@ void setupSTAWebRoutes() {
     String page =
       "<!DOCTYPE html><html><head><title>ESP8266 Control</title></head><body>"
       "<h1>ESP8266 KVM</h1>"
-      "<p><a href=\"/button/1/on\"><button>POWER ON</button></a></p>"
-      "<p><a href=\"/button/2/long\"><button>LONG PRESS</button></a></p>"
+      "<p><a href=\"/button1/on\"><button>POWER ON</button></a></p>"
+      "<p><a href=\"/button2/long\"><button>LONG PRESS</button></a></p>"
       "</body></html>";
     server.send(200, "text/html", page);
   });

@@ -28,12 +28,12 @@ void handleRoot() {
   page += "<style>html { font-family: Helvetica; text-align: center; } ";
   page += ".button { background-color: #195B6A; border: none; color: white; padding: 16px 40px; font-size: 30px; margin: 2px; cursor: pointer;}</style>";
   page += "</head><body><h1>SPONGO SWITCH</h1>";
-  page += "<p><a href='/button/1/on'><button class='button'>POWER ON</button></a></p>";
-  page += "<p><a href='/button/1/off'><button class='button'>POWER OFF</button></a></p>";
-  page += "<p><a href='/button/2/on'><button class='button'>1 POWER ON</button></a></p>";
-  page += "<p><a href='/button/2/off'><button class='button'>1 POWER OFF</button></a></p>";
-  page += "<p><a href='/button/3/on'><button class='button'>2 POWER ON</button></a></p>";
-  page += "<p><a href='/button/3/off'><button class='button'>2 POWER OFF</button></a></p>";
+  page += "<p><a href='/button1/on'><button class='button'>POWER ON</button></a></p>";
+  page += "<p><a href='/button1/off'><button class='button'>POWER OFF</button></a></p>";
+  page += "<p><a href='/button2/on'><button class='button'>1 POWER ON</button></a></p>";
+  page += "<p><a href='/button2/off'><button class='button'>1 POWER OFF</button></a></p>";
+  page += "<p><a href='/button3/on'><button class='button'>2 POWER ON</button></a></p>";
+  page += "<p><a href='/button3/off'><button class='button'>2 POWER OFF</button></a></p>";
   page += "</body></html>";
   server.send(200, "text/html", page);
 }
@@ -176,15 +176,15 @@ void connectToWiFi() {
 
     // Настройка маршрутов основного сервера (STA режим)
     server.on("/", HTTP_GET, handleRoot);
-    server.on("/button/1/on", HTTP_GET, handleButton1On);
-    server.on("/button/1/off", HTTP_GET, handleButton1Off);
-    server.on("/button/1/status", HTTP_GET, handleButton1Status);
-    server.on("/button/2/on", HTTP_GET, handleButton2On);
-    server.on("/button/2/off", HTTP_GET, handleButton2Off);
-    server.on("/button/2/status", HTTP_GET, handleButton2Status);
-    server.on("/button/3/on", HTTP_GET, handleButton3On);
-    server.on("/button/3/off", HTTP_GET, handleButton3Off);
-    server.on("/button/3/status", HTTP_GET, handleButton3Status);
+    server.on("/button1/on", HTTP_GET, handleButton1On);
+    server.on("/button1/off", HTTP_GET, handleButton1Off);
+    server.on("/button1/status", HTTP_GET, handleButton1Status);
+    server.on("/button2/on", HTTP_GET, handleButton2On);
+    server.on("/button2/off", HTTP_GET, handleButton2Off);
+    server.on("/button2/status", HTTP_GET, handleButton2Status);
+    server.on("/button3/on", HTTP_GET, handleButton3On);
+    server.on("/button3/off", HTTP_GET, handleButton3Off);
+    server.on("/button3/status", HTTP_GET, handleButton3Status);
 
     server.begin();
   } else {

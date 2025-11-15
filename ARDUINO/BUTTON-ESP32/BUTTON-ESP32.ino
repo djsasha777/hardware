@@ -211,9 +211,9 @@ void connectToWiFi() {
     Serial.println(WiFi.localIP());
 
     // Основной сервер маршруты
-    mainServer.on("/button/1/on", handleButtonOn);
-    mainServer.on("/button/1/off", handleButtonOff);
-    mainServer.on("/button/1/status", handleButtonStatus);
+    mainServer.on("/button1/on", handleButtonOn);
+    mainServer.on("/button1/off", handleButtonOff);
+    mainServer.on("/button1/status", handleButtonStatus);
 
     mainServer.begin();
     updateLed();

@@ -19,11 +19,11 @@ String wifiPassword = "";
 
 bool shouldConnectToWiFi = false;
 
-const int outputPin = 4;       // PWM вывод для светодиода/лампы
+const int outputPin = 4;       // PWM вывод для регулирования яркости
 const int buttonPin = 5;
 const int ledPin = 6;
 
-int pwmValue = 0;              // Хранение текущего значения яркости (0-255)
+int pwmValue = 0;              // Текущее значение яркости (0-255)
 
 bool lastButtonState = HIGH;
 unsigned long lastDebounceTime = 0;
@@ -32,60 +32,53 @@ const unsigned long resetHoldTime = 10000; // 10 секунд удержания
 unsigned long buttonPressTime = 0;
 bool resetTriggered = false;
 
-// Для мигания светодиода в AP режиме
+// Мигание светодиода в AP режиме
 unsigned long lastLedToggle = 0;
 const unsigned long ledInterval = 500; // 500 мс
 bool ledOn = false;
 
-// ===== Обработчики основного сервера (STA) =====
-
-void handleLedValue() {
-  if (mainServer.method() == HTTP_GET) {
-    if (mainServer.hasArg("value")) {
-      int value = mainServer.arg("value").toInt();
-      if (value < 0) value = 0;
-      if (value > 100) value = 100;
-      pwmValue = map(value, 0, 100, 0, 255);
-      ledcWrite(0, pwmValue);  // Используем канал 0 для PWM
-      mainServer.send(200, "text/plain", "Value set to " + String(value));
-      Serial.println("Set PWM value: " + String(value) + " -> PWM: " + String(pwmValue));
-    } else {
-      mainServer.send(400, "text/plain", "Missing 'value' parameter");
-    }
-  } else {
-    mainServer.send(405, "text/plain", "Метод не поддерживается");
+// Обработчик установки яркости через /led1/XX (XX в 0..100)
+void handleLedValueParam() {
+  String path = mainServer.uri(); // например "/led1/50"
+  int lastSlash = path.lastIndexOf('/');
+  if (lastSlash == -1 || lastSlash == path.length() - 1) {
+    mainServer.send(400, "text/plain", "Значение яркости отсутствует");
+    return;
   }
+  String valueStr = path.substring(lastSlash + 1);
+  int value = valueStr.toInt();
+  if (value < 0) value = 0;
+  if (value > 100) value = 100;
+  pwmValue = map(value, 0, 100, 0, 255);
+  ledcWrite(0, pwmValue);
+  mainServer.send(200, "text/plain", "Яркость установлена: " + String(value));
+  Serial.printf("Set PWM via path: %d%% -> PWM: %d\n", value, pwmValue);
 }
 
+// Обработчик запроса текущей яркости /led1/status
 void handleLedStatus() {
+  int statusValue = map(pwmValue, 0, 255, 0, 100);
   if (mainServer.method() == HTTP_GET) {
-    // Преобразуем pwmValue обратно в 0-100 для статуса
-    int statusValue = map(pwmValue, 0, 255, 0, 100);
     mainServer.send(200, "text/plain", String(statusValue));
   } else {
     mainServer.send(405, "text/plain", "Метод не поддерживается");
   }
 }
 
-// ===== Обработчики вспомогательного сервера (AP) =====
-
+// Вспомогательный сервер AP — корневая страница с возможностью включения/выключения
 void handleRoot() {
   String page = "<!DOCTYPE html><html><head><title>Управление пином</title></head><body>";
   page += "<h2>Управление яркостью LED</h2>";
   page += "<form action=\"/toggle\" method=\"POST\">";
   page += "<input type=\"submit\" value=\"" + String(pwmValue > 0 ? "Выключить" : "Включить") + "\">";
-  page += "</form>";
-  page += "</body></html>";
+  page += "</form></body></html>";
   apServer.send(200, "text/html", page);
 }
 
+// Переключает яркость на максимум или выкл
 void handleToggle() {
   if (apServer.method() == HTTP_POST) {
-    if (pwmValue > 0) {
-      pwmValue = 0;
-    } else {
-      pwmValue = 255;
-    }
+    pwmValue = (pwmValue > 0) ? 0 : 255;
     ledcWrite(0, pwmValue);
     apServer.sendHeader("Location", "/");
     apServer.send(303);
@@ -94,11 +87,12 @@ void handleToggle() {
   }
 }
 
+// Возвращает ON если яркость > 0, иначе OFF
 void handleState() {
-  String stateString = pwmValue > 0 ? "ON" : "OFF";
-  apServer.send(200, "text/plain", stateString);
+  apServer.send(200, "text/plain", pwmValue > 0 ? "ON" : "OFF");
 }
 
+// Сохраняет WiFi параметры
 void handleSave() {
   if (apServer.method() == HTTP_POST) {
     wifiSSID = apServer.arg("ssid");
@@ -118,6 +112,7 @@ void handleSave() {
   }
 }
 
+// Страница OTA обновления
 void handleOTAPage() {
   String page = "<!DOCTYPE html><html><head><title>OTA Update</title></head><body>";
   page += "<h1>OTA обновление прошивки</h1>";
@@ -128,6 +123,7 @@ void handleOTAPage() {
   apServer.send(200, "text/html", page);
 }
 
+// Обработка загрузки OTA прошивки
 void handleOTAUpload() {
   HTTPUpload& upload = apServer.upload();
   if (upload.status == UPLOAD_FILE_START) {
@@ -152,14 +148,10 @@ void handleOTAUpload() {
   }
 }
 
-// ===== Общие функции =====
-
 void updateLed() {
   if (WiFi.getMode() == WIFI_AP) {
-    // В AP режиме светодиод мигает, мигание обрабатывается в loop()
     digitalWrite(ledPin, LOW);
   } else {
-    // Устанавливаем текущий pwmValue
     ledcWrite(0, pwmValue);
   }
 }
@@ -173,13 +165,13 @@ void startAccessPoint() {
   apServer.on("/toggle", HTTP_POST, handleToggle);
   apServer.on("/state", handleState);
   apServer.on("/save", HTTP_POST, handleSave);
-
   apServer.on("/update", HTTP_GET, handleOTAPage);
   apServer.on("/update", HTTP_POST, []() {
     apServer.sendHeader("Connection", "close");
   }, handleOTAUpload);
 
   apServer.begin();
+
   Serial.println("Точка доступа запущена: " + String(ap_ssid));
   Serial.println("IP: " + WiFi.softAPIP().toString());
 
@@ -205,18 +197,19 @@ void connectToWiFi() {
     Serial.print("IP адрес: ");
     Serial.println(WiFi.localIP());
 
-    // Настройка PWM канала (к примеру, канал 0, с частотой 5000, разрешение 8 бит)
     ledcSetup(0, 5000, 8);
     ledcAttachPin(outputPin, 0);
     updateLed();
 
-    // Основной сервер маршруты
-    mainServer.on("/led/1/value", handleLedValue);
-    mainServer.on("/led/1/status", handleLedStatus);
+    // Регистрируем маршрут с параметром в пути для установки яркости
+    mainServer.on("^/led1/([0-9]{1,3})$", HTTP_GET, handleLedValueParam);
+
+    // Статус яркости
+    mainServer.on("/led1/status", HTTP_GET, handleLedStatus);
 
     mainServer.begin();
   } else {
-    Serial.println("Не удалось подключиться к WiFi");
+    Serial.println("Не удалось подключиться к WiFi: запуск AP");
     startAccessPoint();
   }
 }
@@ -282,8 +275,7 @@ void loop() {
       }
     } else if (reading == HIGH) {
       if (!resetTriggered && buttonPressTime != 0) {
-        outputState = !outputState;
-        pwmValue = outputState ? 255 : 0;
+        pwmValue = (pwmValue > 0) ? 0 : 255;
         updateLed();
         Serial.println("Физическая кнопка нажата, PWM изменено на " + String(pwmValue));
       }

@@ -1,34 +1,26 @@
 [
   {
     "name": "button1",
-    "url": "http://192.168.111.238/",
-    "addr": "servermain",
+    "url": "http://192.168.111.238/button1/on",
     "type": "button",
-    "condition": "on",
     "secure": false
   },
   {
     "name": "button2",
-    "url": "http://192.168.111.238/",
-    "addr": "servermainlong",
+    "url": "http://192.168.111.238/button2/long",
     "type": "button",
-    "condition": "long",
     "secure": false
   },
   {
     "name": "light1",
-    "url": "http://192.168.111.138/",
-    "addr": "light1",
-    "type": "light",
-    "condition": "value",
+    "url": "http://192.168.111.138/led1/value",
+    "type": "led",
     "secure": false
   },
   {
     "name": "button2global",
-    "url": "https://home.spongo.ru/",
-    "addr": "button1",
+    "url": "https://home.spongo.ru/server1/button1/on",
     "type": "button",
-    "condition": "on",
     "secure": true
   }
 ]
