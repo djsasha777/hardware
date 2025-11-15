@@ -8,7 +8,9 @@ const char* ap_password = "12345678";
 const char* hostname = "my-esp32-device";
 
 IPAddress apIP(10,10,10,1);
-WebServer server(80);
+
+WebServer mainServer(80);  // основной веб-сервер в режиме STA
+WebServer apServer(80);    // вспомогательный веб-сервер в режиме AP
 
 Preferences preferences;
 
@@ -36,6 +38,41 @@ unsigned long lastLedToggle = 0;
 const unsigned long ledInterval = 500; // 500 мс
 bool ledOn = false;
 
+// ================= Основной сервер - обработчики =================
+
+void handleButtonOn() {
+  if (mainServer.method() == HTTP_GET) {
+    outputState = true;
+    digitalWrite(outputPin, HIGH);
+    updateLed();
+    mainServer.send(200, "text/plain", "Button 1 ON");
+  } else {
+    mainServer.send(405, "text/plain", "Метод не поддерживается");
+  }
+}
+
+void handleButtonOff() {
+  if (mainServer.method() == HTTP_GET) {
+    outputState = false;
+    digitalWrite(outputPin, LOW);
+    updateLed();
+    mainServer.send(200, "text/plain", "Button 1 OFF");
+  } else {
+    mainServer.send(405, "text/plain", "Метод не поддерживается");
+  }
+}
+
+void handleButtonStatus() {
+  if (mainServer.method() == HTTP_GET) {
+    String stateString = outputState ? "ON" : "OFF";
+    mainServer.send(200, "text/plain", stateString);
+  } else {
+    mainServer.send(405, "text/plain", "Метод не поддерживается");
+  }
+}
+
+// ================= Вспомогательный сервер - обработчики =================
+
 void handleRoot() {
   String page = "<!DOCTYPE html><html><head><title>Управление пином</title></head><body>";
   page += "<h2>Управление цифровым пином 4</h2>";
@@ -43,30 +80,30 @@ void handleRoot() {
   page += "<input type=\"submit\" value=\"" + String(outputState ? "Выключить" : "Включить") + "\">";
   page += "</form>";
   page += "</body></html>";
-  server.send(200, "text/html", page);
+  apServer.send(200, "text/html", page);
 }
 
 void handleToggle() {
-  if (server.method() == HTTP_POST) {
+  if (apServer.method() == HTTP_POST) {
     outputState = !outputState;
     digitalWrite(outputPin, outputState ? HIGH : LOW);
-    updateLed(); // Обновляем светодиод согласно новому состоянию
-    server.sendHeader("Location", "/");
-    server.send(303);
+    updateLed();
+    apServer.sendHeader("Location", "/");
+    apServer.send(303);
   } else {
-    server.send(405, "text/plain", "Метод не поддерживается");
+    apServer.send(405, "text/plain", "Метод не поддерживается");
   }
 }
 
 void handleState() {
   String stateString = outputState ? "ON" : "OFF";
-  server.send(200, "text/plain", stateString);
+  apServer.send(200, "text/plain", stateString);
 }
 
 void handleSave() {
-  if (server.method() == HTTP_POST) {
-    wifiSSID = server.arg("ssid");
-    wifiPassword = server.arg("password");
+  if (apServer.method() == HTTP_POST) {
+    wifiSSID = apServer.arg("ssid");
+    wifiPassword = apServer.arg("password");
 
     preferences.begin("wifi-creds", false);
     preferences.putString("ssid", wifiSSID);
@@ -77,11 +114,11 @@ void handleSave() {
     response += "<h2>Данные сохранены!</h2>";
     response += "<p>ESP теперь попытается подключиться к сети: " + wifiSSID + "</p>";
     response += "</body></html>";
-    server.send(200, "text/html", response);
+    apServer.send(200, "text/html", response);
 
     shouldConnectToWiFi = true;
   } else {
-    server.send(405, "text/plain", "Метод не поддерживается");
+    apServer.send(405, "text/plain", "Метод не поддерживается");
   }
 }
 
@@ -93,12 +130,12 @@ void handleOTAPage() {
   page += "<input type='file' name='firmware'>";
   page += "<input type='submit' value='Обновить'>";
   page += "</form></body></html>";
-  server.send(200, "text/html", page);
+  apServer.send(200, "text/html", page);
 }
 
 // Обработка загрузки OTA прошивки
 void handleOTAUpload() {
-  HTTPUpload& upload = server.upload();
+  HTTPUpload& upload = apServer.upload();
   if (upload.status == UPLOAD_FILE_START) {
     Serial.printf("Начало загрузки файла: %s\n", upload.filename.c_str());
     if (!Update.begin()) { // можно Specify max size if known
@@ -111,19 +148,21 @@ void handleOTAUpload() {
   } else if (upload.status == UPLOAD_FILE_END) {
     if (Update.end(true)) {
       Serial.printf("Загрузка прошивки завершена: %u байт\n", upload.totalSize);
-      server.send(200, "text/plain", "OK, перезагрузка...");
+      apServer.send(200, "text/plain", "OK, перезагрузка...");
       delay(1000);
       ESP.restart();
     } else {
       Update.printError(Serial);
-      server.send(500, "text/plain", "Ошибка обновления");
+      apServer.send(500, "text/plain", "Ошибка обновления");
     }
   }
 }
 
+// ================= Общие функции =================
+
 void updateLed() {
   if (WiFi.getMode() == WIFI_AP) {
-    // В AP режиме светодиод мигает, это обработается в loop()
+    // В AP режиме светодиод мигает, мигание обрабатывается в loop()
     digitalWrite(ledPin, LOW);
   } else {
     digitalWrite(ledPin, outputState ? HIGH : LOW);
@@ -135,17 +174,17 @@ void startAccessPoint() {
   WiFi.softAPConfig(apIP, apIP, IPAddress(255,255,255,0));
   WiFi.softAP(ap_ssid, ap_password);
 
-  server.on("/", handleRoot);
-  server.on("/toggle", handleToggle);
-  server.on("/state", handleState);
-  server.on("/save", handleSave);
+  apServer.on("/", handleRoot);
+  apServer.on("/toggle", handleToggle);
+  apServer.on("/state", handleState);
+  apServer.on("/save", handleSave);
 
-  server.on("/update", HTTP_GET, handleOTAPage);
-  server.on("/update", HTTP_POST, []() {
-    server.sendHeader("Connection", "close");
+  apServer.on("/update", HTTP_GET, handleOTAPage);
+  apServer.on("/update", HTTP_POST, []() {
+    apServer.sendHeader("Connection", "close");
   }, handleOTAUpload);
 
-  server.begin();
+  apServer.begin();
   Serial.println("Точка доступа запущена: " + String(ap_ssid));
   Serial.println("IP: " + WiFi.softAPIP().toString());
 
@@ -170,11 +209,18 @@ void connectToWiFi() {
     Serial.println("Подключено к WiFi: " + wifiSSID);
     Serial.print("IP адрес: ");
     Serial.println(WiFi.localIP());
+
+    // Основной сервер маршруты
+    mainServer.on("/button/1/on", handleButtonOn);
+    mainServer.on("/button/1/off", handleButtonOff);
+    mainServer.on("/button/1/status", handleButtonStatus);
+
+    mainServer.begin();
+    updateLed();
   } else {
     Serial.println("Не удалось подключиться к WiFi");
     startAccessPoint();
   }
-  updateLed();
 }
 
 void setup() {
@@ -203,24 +249,20 @@ void setup() {
 
 void loop() {
   if (WiFi.getMode() == WIFI_AP) {
-    server.handleClient();
+    apServer.handleClient();
 
-    if (shouldConnectToWiFi) {
-      delay(1000);
-      shouldConnectToWiFi = false;
-      connectToWiFi();
-    }
-
+    // Мигание светодиодом в AP режиме
     unsigned long now = millis();
     if (now - lastLedToggle >= ledInterval) {
       ledOn = !ledOn;
       digitalWrite(ledPin, ledOn ? HIGH : LOW);
       lastLedToggle = now;
     }
-  } else {
-    server.handleClient();
+  } else if (WiFi.getMode() == WIFI_STA) {
+    mainServer.handleClient();
   }
 
+  // Обработка кнопки с антидребезгом и сбросом WiFi
   int reading = digitalRead(buttonPin);
   if (reading != lastButtonState) {
     lastDebounceTime = millis();

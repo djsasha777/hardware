@@ -186,12 +186,12 @@ void setup() {
 
   // Web server routes
   server.on("/", HTTP_GET, handleRoot);
-  server.on("/button1/on", HTTP_GET, handleButton1On);
-  server.on("/button1/off", HTTP_GET, handleButton1Off);
-  server.on("/button2/on", HTTP_GET, handleButton2On);
-  server.on("/button2/off", HTTP_GET, handleButton2Off);
-  server.on("/button3/on", HTTP_GET, handleButton3On);
-  server.on("/button3/off", HTTP_GET, handleButton3Off);
+  server.on("/button/1/on", HTTP_GET, handleButton1On);
+  server.on("/button/1/off", HTTP_GET, handleButton1Off);
+  server.on("/button/2/on", HTTP_GET, handleButton2On);
+  server.on("/button/2/off", HTTP_GET, handleButton2Off);
+  server.on("/button/3/on", HTTP_GET, handleButton3On);
+  server.on("/button/3/off", HTTP_GET, handleButton3Off);
 
   server.begin();
 }

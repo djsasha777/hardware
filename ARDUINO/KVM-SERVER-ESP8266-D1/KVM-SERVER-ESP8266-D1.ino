@@ -1,9 +1,7 @@
 #include <ESP8266WiFi.h>
-#include <WiFiClient.h>
 #include <ESP8266WebServer.h>
-#include <ESP8266mDNS.h>
 #include <EEPROM.h>
-#include <Updater.h>  // for OTA update
+#include <Updater.h>
 
 const int output = D4;
 const int ledPin = LED_BUILTIN;
@@ -43,16 +41,38 @@ void loadWiFiCredentials() {
   wifiPassword = String(pass);
 }
 
-void startAP() {
-  WiFi.mode(WIFI_AP);
-  WiFi.softAP("ESP8266_AP", "12345678");
-  IPAddress apIP(10, 10, 10, 1);
-  WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
+// Регистрируем маршруты основного сервера в режиме STA, сохраняя логику управления пином
+void setupSTAWebRoutes() {
+  server.on("/button/1/on", []() {
+    digitalWrite(output, HIGH);
+    delay(200);
+    digitalWrite(output, LOW);
+    Serial.println("Pin D4 pulse 200ms ON");
+    server.send(200, "text/html", "OK");
+  });
 
-  Serial.print("Access Point started. IP: ");
-  Serial.println(WiFi.softAPIP());
+  server.on("/button/2/long", []() {
+    digitalWrite(output, HIGH);
+    delay(5000);
+    digitalWrite(output, LOW);
+    Serial.println("Pin D4 long pulse 5s ON");
+    server.send(200, "text/html", "OK");
+  });
 
-  // Web handlers for AP mode
+  // Корневая страница просто для отображения ссылок (можно изменить по запросу)
+  server.on("/", []() {
+    String page =
+      "<!DOCTYPE html><html><head><title>ESP8266 Control</title></head><body>"
+      "<h1>ESP8266 KVM</h1>"
+      "<p><a href=\"/button/1/on\"><button>POWER ON</button></a></p>"
+      "<p><a href=\"/button/2/long\"><button>LONG PRESS</button></a></p>"
+      "</body></html>";
+    server.send(200, "text/html", page);
+  });
+}
+
+// Вспомогательные маршруты для AP - WiFi конфигурация и OTA
+void setupAPWebRoutes() {
   server.on("/", []() {
     String page = "<html><body><h1>Configure WiFi</h1>";
     page += "<form action='/save' method='POST'>";
@@ -72,7 +92,6 @@ void startAP() {
     ESP.restart();
   });
 
-  // OTA update page
   server.on("/update", HTTP_GET, []() {
     String page = "<html><body><h1>OTA Update</h1>";
     page += "<form method='POST' action='/update' enctype='multipart/form-data'>";
@@ -105,7 +124,19 @@ void startAP() {
       }
     }
   });
+}
 
+void startAP() {
+  WiFi.mode(WIFI_AP);
+  WiFi.softAP("ESP8266_AP", "12345678");
+  IPAddress apIP(10, 10, 10, 1);
+  WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
+
+  Serial.print("Access Point started. IP: ");
+  Serial.println(WiFi.softAPIP());
+
+  server.reset();
+  setupAPWebRoutes();
   server.begin();
 }
 
@@ -117,7 +148,6 @@ void connectSTA() {
   Serial.println(wifiSSID);
 
   unsigned long startAttemptTime = millis();
-
   while (WiFi.status() != WL_CONNECTED && millis() - startAttemptTime < 10000) {
     delay(500);
     Serial.print(".");
@@ -128,37 +158,14 @@ void connectSTA() {
     Serial.println("Connected to WiFi.");
     Serial.print("IP address: ");
     Serial.println(WiFi.localIP());
+
+    server.reset();
+    setupSTAWebRoutes();
+    server.begin();
   } else {
-    Serial.println("Failed to connect, starting AP.");
+    Serial.println("Failed to connect; starting AP.");
     startAP();
   }
-}
-
-// Your existing root handler for pin control
-void handleRoot() {
-  String page =
-    "<!DOCTYPE html><html><head><title>ESP8266 KVM</title></head><body>"
-    "<h1>ESP8266 KVM</h1>"
-    "<p><a href=\"/button1/on\"><button>POWER ON</button></a></p>"
-    "<p><a href=\"/button2/long\"><button>LONG PRESS</button></a></p>"
-    "</body></html>";
-  server.send(200, "text/html", page);
-}
-
-void handleButtonOn() {
-  digitalWrite(output, HIGH);
-  delay(200);
-  digitalWrite(output, LOW);
-  Serial.println("Pin D4 HIGH pulse");
-  server.send(200, "text/html", "OK");
-}
-
-void handleButtonLong() {
-  digitalWrite(output, HIGH);
-  delay(5000);
-  digitalWrite(output, LOW);
-  Serial.println("Pin D4 long HIGH pulse");
-  server.send(200, "text/html", "OK");
 }
 
 void setup() {
@@ -175,13 +182,6 @@ void setup() {
   } else {
     startAP();
   }
-
-  // Setup server routes
-  server.on("/", handleRoot);
-  server.on("/button1/on", handleButtonOn);
-  server.on("/button2/long", handleButtonLong);
-
-  server.begin();
 }
 
 void loop() {
