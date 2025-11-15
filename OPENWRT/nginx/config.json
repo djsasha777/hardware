@@ -1,25 +1,31 @@
 [
   {
     "name": "button1",
-    "url": "http://192.168.111.238/button1/on",
+    "url": "http://192.168.111.238/button1",
     "type": "button",
     "secure": false
   },
   {
     "name": "button2",
-    "url": "http://192.168.111.238/button2/long",
+    "url": "http://192.168.111.238/button2",
     "type": "button",
     "secure": false
   },
   {
-    "name": "light1",
-    "url": "http://192.168.111.138/led1/value",
+    "name": "led1",
+    "url": "http://192.168.111.138/led1",
     "type": "led",
     "secure": false
   },
   {
-    "name": "button2global",
-    "url": "https://home.spongo.ru/server1/button1/on",
+    "name": "toggle1",
+    "url": "http://192.168.111.138/toggle1",
+    "type": "toggle",
+    "secure": false
+  },
+  {
+    "name": "button1global",
+    "url": "https://home.spongo.ru/server1/button1",
     "type": "button",
     "secure": true
   }
