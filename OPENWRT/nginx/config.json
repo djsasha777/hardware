@@ -28,5 +28,11 @@
     "url": "https://home.spongo.ru/server1/button1",
     "type": "button",
     "secure": true
+  },
+  {
+    "name": "button2global",
+    "url": "https://home.spongo.ru/server3/button1",
+    "type": "button",
+    "secure": true
   }
 ]
