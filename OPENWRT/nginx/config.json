@@ -34,5 +34,11 @@
     "url": "https://home.spongo.ru/server3/button1",
     "type": "button",
     "secure": true
+  },
+  {
+    "name": "button00",
+    "url": "https://home.spongo.ru/server00/button1",
+    "type": "button",
+    "secure": true
   }
 ]
