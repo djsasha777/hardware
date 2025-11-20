@@ -16,5 +16,11 @@
     "url": "http://192.168.111.120/button1",
     "type": "toggle",
     "secure": false
+  },
+  {
+    "name": "toggle1sec",
+    "url": "http://home.spongo.ru/server3/button1",
+    "type": "toggle",
+    "secure": true
   }
 ]
