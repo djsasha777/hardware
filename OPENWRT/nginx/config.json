@@ -19,7 +19,7 @@
   },
   {
     "name": "toggle1sec",
-    "url": "http://home.spongo.ru/server3/button1",
+    "url": "https://home.spongo.ru/server3/button1",
     "type": "toggle",
     "secure": true
   }
