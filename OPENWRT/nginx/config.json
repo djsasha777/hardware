@@ -1,13 +1,13 @@
 [
   {
     "name": "button1on",
-    "url": "http://192.168.111.120/button1",
+    "url": "http://192.168.111.120/button1/on",
     "type": "button",
     "secure": false
   },
   {
     "name": "button1off",
-    "url": "http://192.168.111.120/button1",
+    "url": "http://192.168.111.120/button1/off",
     "type": "button",
     "secure": false
   },
