@@ -2,6 +2,9 @@
 #include <ESP8266WebServer.h>
 #include <EEPROM.h>
 #include <Updater.h>
+#ifndef D4
+#define D4 2
+#endif
 
 const int output = D4;
 const int ledPin = LED_BUILTIN;
@@ -109,7 +112,7 @@ void setupAPWebRoutes() {
     HTTPUpload& upload = server.upload();
     if (upload.status == UPLOAD_FILE_START) {
       Serial.printf("Update Start: %s\n", upload.filename.c_str());
-      if (!Update.begin()) {
+      if (!Update.begin(upload.totalSize)) {
         Update.printError(Serial);
       }
     } else if (upload.status == UPLOAD_FILE_WRITE) {
@@ -135,7 +138,7 @@ void startAP() {
   Serial.print("Access Point started. IP: ");
   Serial.println(WiFi.softAPIP());
 
-  server.reset();
+  server.stop();
   setupAPWebRoutes();
   server.begin();
 }
@@ -159,7 +162,7 @@ void connectSTA() {
     Serial.print("IP address: ");
     Serial.println(WiFi.localIP());
 
-    server.reset();
+    server.stop();
     setupSTAWebRoutes();
     server.begin();
   } else {
