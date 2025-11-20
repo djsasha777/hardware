@@ -1,44 +1,20 @@
 [
   {
-    "name": "button1",
-    "url": "http://192.168.111.238/button1",
+    "name": "button1on",
+    "url": "http://192.168.111.120/button1",
     "type": "button",
     "secure": false
   },
   {
-    "name": "button2",
-    "url": "http://192.168.111.238/button2",
+    "name": "button1off",
+    "url": "http://192.168.111.120/button1",
     "type": "button",
-    "secure": false
-  },
-  {
-    "name": "led1",
-    "url": "http://192.168.111.138/led1",
-    "type": "led",
     "secure": false
   },
   {
     "name": "toggle1",
-    "url": "http://192.168.111.138/toggle1",
+    "url": "http://192.168.111.120/button1",
     "type": "toggle",
     "secure": false
-  },
-  {
-    "name": "button1global",
-    "url": "https://home.spongo.ru/server1/button1",
-    "type": "button",
-    "secure": true
-  },
-  {
-    "name": "button2global",
-    "url": "https://home.spongo.ru/server3/button1",
-    "type": "button",
-    "secure": true
-  },
-  {
-    "name": "button00",
-    "url": "https://home.spongo.ru/server00/button1",
-    "type": "button",
-    "secure": true
   }
 ]
